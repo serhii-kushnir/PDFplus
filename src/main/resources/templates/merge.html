@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Об'єднати PDF | PDF Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f5f7fb;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 32px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 40px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
+            border: 1px solid #eef2ff;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #4b5563;
+            margin-bottom: 24px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: #2563eb; }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+        .sub {
+            color: #5b6e8c;
+            margin-bottom: 32px;
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 24px;
+            background: #fafcff;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-area.drag-over {
+            border-color: #2563eb;
+            background: #f0f9ff;
+        }
+        .upload-icon { font-size: 3rem; color: #2563eb; margin-bottom: 16px; }
+        .upload-area p { margin-bottom: 8px; font-weight: 500; }
+        .file-list {
+            margin: 28px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .file-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+        }
+        .remove-file {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.1s;
+        }
+        .remove-file:hover { transform: scale(1.1); }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 12px;
+        }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #1d4ed8; }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 24px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .info {
+            background: #f1f5f9;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 32px;
+            font-size: 0.9rem;
+        }
+        .info i { margin-right: 8px; color: #2563eb; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> На головну</a>
+        <h1><i class="fas fa-object-group"></i> Об'єднати PDF</h1>
+        <div class="sub">Виберіть декілька PDF-файлів, щоб об'єднати їх в один документ</div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <p><strong>Натисніть або перетягніть файли</strong></p>
+            <small>PDF, до 50 MB кожен</small>
+            <input type="file" id="fileInput" multiple accept=".pdf" style="display:none">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+        <button id="mergeBtn" disabled>Об'єднати PDF</button>
+        <div class="loading" id="loading"><div class="spinner"></div><p>Об'єднання...</p></div>
+        <div class="info"><i class="fas fa-info-circle"></i> Файли будуть об'єднані в порядку додавання. Результат зберігається 60 хвилин.</div>
+    </div>
+</div>
+<script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileListDiv = document.getElementById('fileList');
+    const mergeBtn = document.getElementById('mergeBtn');
+    const loading = document.getElementById('loading');
+    let selectedFiles = [];
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+    uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        addFiles(Array.from(e.dataTransfer.files));
+    });
+    fileInput.addEventListener('change', e => addFiles(Array.from(e.target.files)));
+
+    function addFiles(files) {
+        files.forEach(f => { if (f.type === 'application/pdf') selectedFiles.push(f); else alert(`Файл ${f.name} не PDF`); });
+        updateFileList();
+    }
+    function updateFileList() {
+        fileListDiv.innerHTML = '';
+        selectedFiles.forEach((f, idx) => {
+            const div = document.createElement('div'); div.className = 'file-item';
+            div.innerHTML = `<span><i class="fas fa-file-pdf"></i> ${f.name} (${(f.size/1024).toFixed(1)} KB)</span>
+                             <button class="remove-file" data-index="${idx}"><i class="fas fa-trash-alt"></i></button>`;
+            fileListDiv.appendChild(div);
+        });
+        document.querySelectorAll('.remove-file').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const idx = +e.currentTarget.dataset.index;
+                selectedFiles.splice(idx, 1);
+                updateFileList();
+            });
+        });
+        mergeBtn.disabled = selectedFiles.length < 2;
+    }
+
+    mergeBtn.addEventListener('click', async () => {
+        if (selectedFiles.length < 2) return;
+        const fd = new FormData();
+        selectedFiles.forEach(f => fd.append('files', f));
+        mergeBtn.disabled = true;
+        loading.style.display = 'block';
+        try {
+            const res = await fetch('/api/pdf/merge', { method: 'POST', body: fd });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'merged_result.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+                window.location.href = '/result?message=PDF успішно об\'єднано! Файл буде видалено через 60 хвилин.';
+            } else throw new Error('Помилка об\'єднання');
+        } catch (err) { alert('Сталася помилка: ' + err.message); }
+        finally { loading.style.display = 'none'; mergeBtn.disabled = false; }
+    });
+</script>
+</body>
+</html>
