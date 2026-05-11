@@ -3,196 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Editor | Об'єднати, розділити, редагувати PDF</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>PDF Plus | Організація PDF</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
-            background: #f5f7fb;
-            color: #1a2c3e;
-            line-height: 1.4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(145deg, #f0f4fa 0%, #e9eef5 100%);
+            min-height: 100vh;
+            padding: 32px 20px;
         }
-
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 40px 24px;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-
+        .container { max-width: 1280px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 48px; }
         .logo {
-            font-size: 2.2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
-            -webkit-background-clip: text;
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
             background-clip: text;
+            -webkit-background-clip: text;
             color: transparent;
-            display: inline-block;
-            margin-bottom: 12px;
         }
+        .tagline { font-size: 1.1rem; color: #4a5b6e; margin-top: 8px; }
 
-        .tagline {
-            font-size: 1.2rem;
-            color: #4b5563;
-            max-width: 600px;
-            margin: 0 auto;
+        /* Секція категорії */
+        .category {
+            margin-bottom: 64px;
         }
-
-        /* Картки інструментів */
+        .category-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1e3c72;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #cbd5e1;
+        }
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin: 40px 0;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
         }
-
         .tool-card {
             background: white;
             border-radius: 28px;
-            padding: 32px 24px;
+            padding: 28px 24px;
             text-align: center;
-            transition: all 0.25s ease;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
             text-decoration: none;
-            color: #1e293b;
+            color: #1e2a3a;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.5);
             display: block;
-            border: 1px solid #eef2ff;
         }
-
         .tool-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 30px -12px rgba(0,0,0,0.15);
             border-color: #cbd5e1;
         }
-
-        .tool-icon {
-            font-size: 3.5rem;
-            margin-bottom: 20px;
-            color: #2563eb;
-        }
-
-        .tool-card h3 {
-            font-size: 1.6rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .tool-card p {
-            color: #5b6e8c;
-            font-size: 0.95rem;
-            line-height: 1.5;
+        .tool-icon { font-size: 2.8rem; margin-bottom: 16px; }
+        .tool-card h3 { font-size: 1.4rem; font-weight: 600; margin-bottom: 8px; color: #1e3c72; }
+        .tool-card p { color: #5b6e8c; font-size: 0.85rem; line-height: 1.4; }
+        .badge {
+            background: #e6f0ff;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 12px;
         }
 
         /* Інфо-бокс */
         .info-box {
             background: white;
             border-radius: 28px;
-            padding: 32px;
+            padding: 28px 32px;
             margin-top: 40px;
             border: 1px solid #eef2ff;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
         }
-
-        .info-box h3 {
-            font-size: 1.4rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .info-box ul {
-            list-style: none;
+        .info-box h3 { font-size: 1.2rem; margin-bottom: 16px; color: #1e3c72; }
+        .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
         }
-
-        .info-box li {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1rem;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f2f5;
-        }
-
-        .info-box i {
-            width: 28px;
-            color: #2563eb;
-            font-size: 1.2rem;
-        }
-
-        .badge {
-            background: #e6f0ff;
-            color: #1e40af;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            margin-left: 6px;
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 60px;
-            padding-top: 24px;
-            border-top: 1px solid #e2e8f0;
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        @media (max-width: 640px) {
-            .container { padding: 24px 16px; }
-            .tool-card { padding: 24px 16px; }
-            .logo { font-size: 1.8rem; }
-        }
+        .info-grid span { display: flex; align-items: center; gap: 10px; padding: 6px 0; color: #334155; font-size: 0.9rem; }
+        footer { text-align: center; margin-top: 60px; padding-top: 24px; border-top: 1px solid #e2e8f0; color: #6c757d; font-size: 0.85rem; }
+        @media (max-width: 640px) { .container { padding: 24px 16px; } .logo { font-size: 1.8rem; } .category-title { font-size: 1.4rem; } }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <div class="logo">📄 PDF Editor</div>
-        <div class="tagline">Потужні інструменти для роботи з PDF безкоштовно, безпечно та миттєво</div>
+        <div class="logo">📄 PDF Plus</div>
+        <div class="tagline">Потужні інструменти для роботи з PDF: об'єднуйте, розділяйте, сортуйте, скануйте</div>
     </div>
 
-    <div class="tools-grid">
-        <a href="/merge" class="tool-card">
-            <div class="tool-icon"><i class="fas fa-object-group"></i></div>
-            <h3>Об'єднати PDF</h3>
-            <p>Об'єднайте кілька PDF файлів в один документ. Легко та швидко.</p>
-        </a>
-        <a href="/split" class="tool-card">
-            <div class="tool-icon"><i class="fas fa-cut"></i></div>
-            <h3>Розділити PDF</h3>
-            <p>Розділіть PDF на окремі сторінки або вилучіть потрібні сторінки.</p>
-        </a>
+    <!-- Категорія: Организовать PDF -->
+    <div class="category">
+        <div class="category-title">📂 Организовать PDF</div>
+        <div class="tools-grid">
+            <!-- 1. Объединить PDF -->
+            <a href="/merge" class="tool-card">
+                <div class="tool-icon">🔗</div>
+                <h3>Объединить PDF</h3>
+                <p>Объединяйте PDF файлы и упорядочите их легко и быстро в любом порядке, который вам нравится.</p>
+                <span class="badge">Популярный</span>
+            </a>
+            <!-- 2. Разделить PDF -->
+            <a href="/split" class="tool-card">
+                <div class="tool-icon">✂️</div>
+                <h3>Разделить PDF</h3>
+                <p>Выбирайте диапазон страниц, одну страницу или преобразовывайте каждую страницу документа в независимый PDF-файл.</p>
+            </a>
+            <!-- 3. Организовать PDF (сортування сторінок) -->
+            <a href="/organize" class="tool-card">
+                <div class="tool-icon">📑</div>
+                <h3>Организовать PDF</h3>
+                <p>Сортируйте страницы вашего PDF-файла, как вам угодно. Удаляйте или добавляйте PDF-страницы в документ по своему усмотрению.</p>
+                <span class="badge">Новинка</span>
+            </a>
+            <!-- 4. Сканировать в PDF -->
+            <a href="/scan" class="tool-card" id="scanLink">
+                <div class="tool-icon">📱</div>
+                <h3>Сканировать в PDF</h3>
+                <p>Создавайте сканы документов с помощью мобильного устройства и сразу же отправляйте их в браузер.</p>
+                <span class="badge">Мобильный</span>
+            </a>
+        </div>
     </div>
 
     <div class="info-box">
-        <h3><i class="fas fa-shield-alt"></i> Безпечний сервіс</h3>
-        <ul>
-            <li><i class="fas fa-clock"></i> <strong>Таймліф:</strong> Файли автоматично видаляються через 30–60 хвилин</li>
-            <li><i class="fas fa-lock"></i> <strong>Конфіденційно:</strong> Ваші файли ніхто не переглядає</li>
-            <li><i class="fas fa-bolt"></i> <strong>Миттєво:</strong> Обробка не займає багато часу</li>
-            <li><i class="fas fa-mobile-alt"></i> <strong>Зручно:</strong> Працює на будь-якому пристрої</li>
-        </ul>
+        <h3>ℹ️ Про сервіс PDF Plus</h3>
+        <div class="info-grid">
+            <span>🕒 <strong>Таймліф:</strong> Файли автоматично видаляються через 30–60 хвилин</span>
+            <span>🔒 <strong>Безпека:</strong> Ваші файли ніхто не переглядає</span>
+            <span>⚡ <strong>Швидкість:</strong> Обробка миттєва</span>
+            <span>📱 <strong>Мобільний доступ:</strong> Скануйте з телефону</span>
+        </div>
     </div>
 
     <footer>
-        © 2025 PDF Editor | Аналог iLovePDF на Java Spring Boot
+        © 2026 PDF Plus | by Sehii Kushnir
     </footer>
 </div>
+
+<!-- Невеликий скрипт для функції сканування (за бажанням) -->
+<script>
+    document.getElementById('scanLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('Для сканування в PDF використовуйте мобільний додаток PDF Plus. Функція буде доступна найближчим часом.');
+    });
+</script>
 </body>
 </html>

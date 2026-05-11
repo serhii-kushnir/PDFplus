@@ -28,4 +28,14 @@ public class WebController {
         model.addAttribute("message", message);
         return "result";
     }
+
+    @GetMapping("/organize")
+    public String organizePage() {
+        return "organize";
+    }
+
+    @GetMapping("/scan")
+    public String scanPage() {
+        return "scan";
+    }
 }
