@@ -38,4 +38,9 @@ public class WebController {
     public String scanPage() {
         return "scan";
     }
+
+    @GetMapping("/history")
+    public String historyPage(Model model) {
+        return "history";
+    }
 }

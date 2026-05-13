@@ -190,6 +190,12 @@ public class PdfController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("Файл не знайдено"));
     }
 
+    @GetMapping("/files")
+    public ResponseEntity<List<FileMetadata>> getAllFiles() {
+        List<FileMetadata> files = storageService.getAllMetadata();
+        return ResponseEntity.ok(files);
+    }
+
     private ResponseEntity<byte[]> buildPdfResponse(byte[] pdfBytes, String filename) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
