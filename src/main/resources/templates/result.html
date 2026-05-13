@@ -1,95 +1,192 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Готово | PDF Editor</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>✅ Готово! — PDF Plus</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #f5f7fb;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
+            color: #333;
         }
-        .card {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
             background: white;
-            border-radius: 36px;
-            padding: 48px 40px;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #2ecc71;
             text-align: center;
-            max-width: 520px;
-            width: 100%;
-            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
-            border: 1px solid #eef2ff;
+            margin-bottom: 10px;
         }
         .success-icon {
-            background: #dcfce7;
-            width: 80px;
-            height: 80px;
-            line-height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 24px;
-            font-size: 2.8rem;
-            color: #16a34a;
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 20px;
         }
-        h1 { font-size: 1.9rem; margin-bottom: 16px; color: #0f172a; }
-        p { color: #334155; margin-bottom: 32px; font-size: 1rem; line-height: 1.5; }
-        .buttons {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
+        .message {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .download-section {
+            text-align: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
         }
         .btn {
-            padding: 12px 28px;
-            border-radius: 40px;
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 5px;
+            background: #667eea;
+            color: white;
             text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
         }
-        .btn-primary {
-            background: #2563eb;
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+        .btn-outline:hover {
+            background: #667eea;
             color: white;
         }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary {
-            background: #f1f5f9;
-            color: #1e293b;
+        .btn-success {
+            background: #2ecc71;
         }
-        .btn-secondary:hover { background: #e2e8f0; }
-        .timer-note {
-            margin-top: 32px;
-            font-size: 0.85rem;
-            color: #6c757d;
+        .btn-success:hover {
+            background: #27ae60;
         }
-        @media (max-width: 480px) { .card { padding: 32px 24px; } }
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 30px 0;
+        }
+        .nav-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .nav-card:hover {
+            border-color: #667eea;
+            background: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .nav-card a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            display: block;
+        }
+        .nav-card .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .ttl-notice {
+            text-align: center;
+            padding: 12px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #856404;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #888;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
-<div class="card">
-    <div class="success-icon"><i class="fas fa-check-circle"></i></div>
-    <h1>Готово!</h1>
-    <p id="messageText"></p>
-    <div class="buttons">
-        <a href="/" class="btn btn-primary"><i class="fas fa-home"></i> На головну</a>
-        <a href="/merge" class="btn btn-secondary"><i class="fas fa-object-group"></i> Об'єднати</a>
-        <a href="/split" class="btn btn-secondary"><i class="fas fa-cut"></i> Розділити</a>
+    <div class="container">
+        <!-- ✅ Успіх -->
+        <div class="success-icon">✅</div>
+        <h1>Готово!</h1>
+        <p class="message" th:if="${message}" th:text="${message}">Ваш файл успішно оброблено.</p>
+        
+        <!-- 🔽 Завантаження -->
+        <div class="download-section">
+            <a href="/api/pdf/download" class="btn btn-success">⬇️ Завантажити результат</a>
+        </div>
+
+        <!-- ⏱️ TTL Notice -->
+        <div class="ttl-notice">
+            ⏰ Файли будуть автоматично видалені через <strong>30–60 хвилин</strong>
+        </div>
+
+        <!-- 🧭 Повне меню навігації -->
+        <h3 style="text-align:center; margin:30px 0 15px;">🔧 Інші інструменти</h3>
+        <div class="nav-grid">
+            <div class="nav-card">
+                <span class="icon">🏠</span>
+                <a href="/">Головна</a>
+            </div>
+            <div class="nav-card">
+                <span class="icon">🔗</span>
+                <a href="/merge">Об'єднати PDF</a>
+            </div>
+            <div class="nav-card">
+                <span class="icon">✂️</span>
+                <a href="/split">Розділити PDF</a>
+            </div>
+            <div class="nav-card">
+                <span class="icon">📑</span>
+                <a href="/organize">Організувати сторінки</a>
+            </div>
+            <div class="nav-card">
+                <span class="icon">🔄</span>
+                <a href="/result?message=Повернутися">Повторити дію</a>
+            </div>
+            <div class="nav-card">
+                <span class="icon">📱</span>
+                <a href="/scan">Сканувати в PDF</a>
+            </div>
+            <div class="nav-card">
+                <span class="icon">📋</span>
+                <a href="/history">Історія файлів</a>
+            </div>
+        </div>
+
+        <!-- 🔙 Кнопка назад -->
+        <div style="text-align:center; margin-top:20px;">
+            <button onclick="history.back()" class="btn btn-outline">← Назад</button>
+        </div>
+
+        <!-- 🦶 Footer -->
+        <div class="footer">
+            <p><strong>PDF Plus</strong> — швидка обробка PDF онлайн</p>
+            <p>🔒 Безпечно • ⚡ Миттєво • 🗑️ Автовидалення</p>
+        </div>
     </div>
-    <div class="timer-note"><i class="fas fa-clock"></i> Файли будуть автоматично видалені через вказаний час</div>
-</div>
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const msg = urlParams.get('message');
-    const p = document.getElementById('messageText');
-    if (msg) p.textContent = decodeURIComponent(msg);
-    else p.textContent = 'Операція успішно виконана!';
-</script>
 </body>
 </html>
