@@ -1,5 +1,7 @@
 ```
 # Compiled and build artifacts
+*.pyc
+__pycache__/
 *.class
 *.o
 *.obj
@@ -8,14 +10,14 @@
 *.so
 *.a
 *.out
+dist/
 build/
 target/
 
 # Dependencies
-node_modules/
-venv/
 .venv/
-__pycache__/
+venv/
+node_modules/
 .mypy_cache/
 .pytest_cache/
 .gradle/
@@ -63,8 +65,4 @@ htmlcov/
 *.Z
 *.lz
 *.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
 ```
