@@ -75,12 +75,12 @@
         <span>📄</span> PDF Plus
     </a>
     <ul class="nav-links">
-        <li><a th:href="@{/}" th:class="${#httpServletRequest.requestURI == '/'} ? 'active' : ''">Головна</a></li>
-        <li><a th:href="@{/merge}" th:class="${#httpServletRequest.requestURI == '/merge'} ? 'active' : ''">Об'єднати</a></li>
-        <li><a th:href="@{/split}" th:class="${#httpServletRequest.requestURI == '/split'} ? 'active' : ''">Розділити</a></li>
-        <li><a th:href="@{/organize}" th:class="${#httpServletRequest.requestURI == '/organize'} ? 'active' : ''">Організувати</a></li>
-        <li><a th:href="@{/scan}" th:class="${#httpServletRequest.requestURI == '/scan'} ? 'active' : ''">Сканувати</a></li>
-        <li><a th:href="@{/history}" th:class="${#httpServletRequest.requestURI == '/history'} ? 'active' : ''">Історія</a></li>
+        <li><a th:href="@{/}" th:class="${#request.requestURI == '/'} ? 'active' : ''">Головна</a></li>
+        <li><a th:href="@{/merge}" th:class="${#request.requestURI == '/merge'} ? 'active' : ''">Об'єднати</a></li>
+        <li><a th:href="@{/split}" th:class="${#request.requestURI == '/split'} ? 'active' : ''">Розділити</a></li>
+        <li><a th:href="@{/organize}" th:class="${#request.requestURI == '/organize'} ? 'active' : ''">Організувати</a></li>
+        <li><a th:href="@{/scan}" th:class="${#request.requestURI == '/scan'} ? 'active' : ''">Сканувати</a></li>
+        <li><a th:href="@{/history}" th:class="${#request.requestURI == '/history'} ? 'active' : ''">Історія</a></li>
     </ul>
 </nav>
 
