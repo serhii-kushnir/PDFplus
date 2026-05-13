@@ -1,7 +1,9 @@
 package org.pdf.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.LocalDateTime;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FileMetadata {
     private String fileId;
     private String originalFilename;
