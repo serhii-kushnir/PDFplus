@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Історія файлів | PDF Plus</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(145deg, #f0f4fa 0%, #e9eef5 100%);
+            min-height: 100vh;
+            padding: 32px 20px;
+        }
+        .container { max-width: 1280px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 32px; }
+        .logo {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: #1e3c72;
+            text-decoration: none;
+            font-size: 1rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .history-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1e3c72;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #cbd5e1;
+        }
+
+        .files-table {
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .files-table thead {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+        }
+        .files-table th, .files-table td {
+            padding: 16px;
+            text-align: left;
+        }
+        .files-table th {
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .files-table tbody tr {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .files-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .files-table tbody tr:hover {
+            background: #f8fafc;
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-expired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 48px 24px;
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+        .refresh-btn {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+        .loading {
+            text-align: center;
+            padding: 48px;
+            color: #64748b;
+        }
+        @media (max-width: 768px) {
+            .files-table { font-size: 0.85rem; }
+            .files-table th, .files-table td { padding: 12px 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">📄 PDF Plus</div><br>
+        <a href="/" class="back-link">← Повернутися на головну</a>
+    </div>
+
+    <h1 class="history-title">📋 Історія файлів</h1>
+
+    <button class="refresh-btn" onclick="loadFiles()">🔄 Оновити</button>
+
+    <div id="filesContainer">
+        <div class="loading">Завантаження...</div>
+    </div>
+</div>
+
+<script>
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleString('uk-UA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function loadFiles() {
+        const container = document.getElementById('filesContainer');
+        container.innerHTML = '<div class="loading">Завантаження...</div>';
+
+        fetch('/api/pdf/files')
+            .then(response => response.json())
+            .then(files => {
+                if (!files || files.length === 0) {
+                    container.innerHTML = '<div class="empty-message">📭 Немає збережених файлів</div>';
+                    return;
+                }
+
+                let html = `
+                    <table class="files-table">
+                        <thead>
+                            <tr>
+                                <th>ID файлу</th>
+                                <th>Назва</th>
+                                <th>Дата створення</th>
+                                <th>Термін дії (хв)</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                files.forEach(file => {
+                    const isExpired = file.expired || false;
+                    const statusClass = isExpired ? 'status-expired' : 'status-active';
+                    const statusText = isExpired ? 'Термін минув' : 'Активний';
+
+                    html += `
+                        <tr>
+                            <td><code>${file.fileId.substring(0, 8)}...</code></td>
+                            <td>${file.originalFilename}</td>
+                            <td>${formatDate(file.createdAt)}</td>
+                            <td>${file.ttlMinutes > 0 ? file.ttlMinutes : '∞'}</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Помилка:', error);
+                container.innerHTML = '<div class="empty-message">❌ Помилка завантаження даних</div>';
+            });
+    }
+
+    // Завантажити файли при відкритті сторінки
+    loadFiles();
+</script>
+</body>
+</html>
