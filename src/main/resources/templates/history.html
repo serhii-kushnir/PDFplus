@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -118,6 +118,9 @@
 </head>
 <body>
 <div class="container">
+    <!-- Навігаційне меню -->
+    <div th:replace="~{fragments/nav-menu :: nav-menu}"></div>
+    
     <div class="header">
         <div class="logo">📄 PDF Plus</div><br>
         <a href="/" class="back-link">← Повернутися на головну</a>
