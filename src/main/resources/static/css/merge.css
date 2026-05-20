@@ -6,6 +6,57 @@
             color: #1f2a3e;
             line-height: 1.5;
         }
+        .file-card:hover .file-tooltip {
+            visibility: visible;
+            opacity: 1;
+        } {
+            border-color: #e74c3c;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+        .file-card canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            margin-bottom: 8px;
+        }
+        .file-card:hover {
+            visibility: visible;
+            opacity: 1;
+        }
+        .file-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
+            position: absolute;
+            bottom: calc(100% + 12px);  /* вище картки */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 400;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .file-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        .file-tooltip {Ф
+            bottom: calc(100% + 8px);
+        }
         .main { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
         .tool.tool--small {
             background: #ffffff;
@@ -122,6 +173,11 @@
             padding: 32px 24px;
             display: flex;
             flex-direction: column;
+            justify-content: flex-start;
+        }
+        #processTask {
+            margin-top: auto;  /* штовхає кнопку вниз */
+            margin-bottom: 0;  /* зайве, але для порядку */
         }
         .tool__header {
             text-align: center;
@@ -193,6 +249,74 @@
             width: 100%;
             overflow: hidden;
             display: none;
+        }
+        /* Стилі для спливаючих повідомлень (тостів) */
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px 24px;
+            min-width: 280px;
+            max-width: 400px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            font-size: 14px;
+            font-weight: 500;
+            animation: slideInRight 0.3s ease-out;
+            border-left: 4px solid;
+        }
+
+        .toast-notification.toast-success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+            color: #065f46;
+        }
+
+        .toast-notification.toast-error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .toast-notification i {
+            font-size: 20px;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-notification.fade-out {
+            animation: fadeOut 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .toast-notification {
+                left: 20px;
+                right: 20px;
+                min-width: auto;
+                bottom: 20px;
+                animation: slideInRight 0.4s ease-out;
+            }
         }
         .progress-bar { width: 0%; height: 100%; background: #e74c3c; transition: width 0.2s linear; }
         .status-message { margin-top: 16px; font-size: 0.85rem; text-align: center; }

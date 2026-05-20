@@ -10,13 +10,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-
 </head>
 <body>
 <div class="main">
     <div th:replace="~{fragments/nav-menu :: nav-menu}"></div>
 
     <div class="tool tool--small">
+        <!-- Ліва частина: робоча область -->
         <div class="tool__workarea">
             <!-- Зона завантаження (прихована після додавання файлів) -->
             <div id="uploader" class="uploader">
@@ -24,26 +24,28 @@
                 <input type="file" id="fileInput" multiple accept=".pdf" style="display:none">
             </div>
 
-            <!-- Робоча область з файлами (прихована спочатку) -->
+            <!-- Список файлів (прихований спочатку) -->
             <div id="filesContainer" class="files-grid" style="display: none;">
                 <div class="empty-state">Файли не вибрано</div>
             </div>
         </div>
 
-        <!-- Бічна панель -->
+        <!-- Бічна панель справа -->
         <div class="tool__sidebar">
             <div class="tool__header">
                 <h1 class="tool__header__title">Об'єднати PDF</h1>
                 <h2 class="tool__header__subtitle">Об'єднуйте PDF файли та впорядковуйте їх легко і швидко в будь-якому порядку.</h2>
             </div>
-            <!-- Кнопка "Додати ще файли" (спочатку прихована) -->
             <button id="addMoreFilesBtn" class="btn-add-more" style="display: none;">➕ Додати ще файли</button>
             <div class="info">
                 <i class="fas fa-arrows-alt"></i>  Перетягніть файли для зміни порядку.
             </div>
             <button id="processTask" class="btn btn--process merge" disabled>
                 <span>Об'єднати PDF</span>
-                <svg width="24" height="24" viewBox="0 0 26 26" fill="#FFF"><path d="M13 26C5.82 26 0 20.18 0 13S5.82 0 13 0s13 5.82 13 13-5.82 13-13 13zm0-2c6.075 0 11-4.925 11-11S19.075 2 13 2 2 6.925 2 13s4.925 11 11 11z"/><path d="M18.684 13.105a.55.55 0 0 1-.148.378l-5.263 5.263a.55.55 0 0 1-.378.148.54.54 0 0 1-.526-.526V15.21H7.842a.54.54 0 0 1-.526-.526v-3.158A.54.54 0 0 1 7.842 11h4.526V7.842a.52.52 0 0 1 .526-.526c.148 0 .28.066.395.164l5.247 5.247a.55.55 0 0 1 .148.378z"/></svg>
+                <svg width="24" height="24" viewBox="0 0 26 26" fill="#FFF">
+                    <path d="M13 26C5.82 26 0 20.18 0 13S5.82 0 13 0s13 5.82 13 13-5.82 13-13 13zm0-2c6.075 0 11-4.925 11-11S19.075 2 13 2 2 6.925 2 13s4.925 11 11 11z"/>
+                    <path d="M18.684 13.105a.55.55 0 0 1-.148.378l-5.263 5.263a.55.55 0 0 1-.378.148.54.54 0 0 1-.526-.526V15.21H7.842a.54.54 0 0 1-.526-.526v-3.158A.54.54 0 0 1 7.842 11h4.526V7.842a.52.52 0 0 1 .526-.526c.148 0 .28.066.395.164l5.247 5.247a.55.55 0 0 1 .148.378z"/>
+                </svg>
             </button>
             <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
             <div id="statusMessage" class="status-message"></div>
@@ -74,11 +76,59 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
+    let toastQueue = [];
+    let isToastShowing = false;
+
     function showMessage(msg, type) {
-        statusDiv.innerHTML = `<div style="color:${type === 'error' ? '#b91c1c' : '#15803d'}">${msg}</div>`;
-        setTimeout(() => { if (statusDiv.innerHTML.includes(msg)) statusDiv.innerHTML = ''; }, 4000);
+    // Додаємо повідомлення в чергу
+    toastQueue.push({ msg, type });
+    processToastQueue();
     }
 
+    function processToastQueue() {
+    if (isToastShowing) return;
+    if (toastQueue.length === 0) return;
+
+    isToastShowing = true;
+    const { msg, type } = toastQueue.shift();
+
+    // Видаляємо попередні тости (якщо раптом залишилися)
+    const existingToasts = document.querySelectorAll('.toast-notification');
+    existingToasts.forEach(toast => toast.remove());
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-check-circle"></i>';
+    toast.innerHTML = `${icon}<span>${msg}</span>`;
+    document.body.appendChild(toast);
+
+    // Час показу – 5 секунд
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            toast.remove();
+            isToastShowing = false;
+            processToastQueue(); // показуємо наступне повідомлення, якщо є
+        }, 400); // час анімації зникнення
+    }, 5000); // показуємо 5 секунд
+}
+
+    // Отримання кількості сторінок у PDF
+    async function getPageCount(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const pdf = await pdfjsLib.getDocument({ data: e.target.result }).promise;
+                    resolve(pdf.numPages);
+                } catch (err) { reject(err); }
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // Генерація мініатюри + отримання сторінок та розміру
     async function generateThumbnail(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -91,7 +141,11 @@
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
                     await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-                    resolve(canvas.toDataURL());
+                    resolve({
+                        thumbnailUrl: canvas.toDataURL(),
+                        pageCount: pdf.numPages,
+                        fileSize: file.size
+                    });
                 } catch (err) { reject(err); }
             };
             reader.onerror = reject;
@@ -115,13 +169,18 @@
             if (file.type !== 'application/pdf') { showMessage(`Файл "${file.name}" не є PDF`, 'error'); continue; }
             if (selectedFiles.some(f => f.file.name === file.name && f.file.size === file.size)) { showMessage(`Файл "${file.name}" вже доданий`, 'error'); continue; }
             try {
-                const thumb = await generateThumbnail(file);
-                selectedFiles.push({ file, thumbnailUrl: thumb, name: file.name, size: file.size });
+                const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
+                selectedFiles.push({
+                    file,
+                    thumbnailUrl,
+                    name: file.name,
+                    size: fileSize,
+                    pageCount: pageCount
+                });
                 added++;
             } catch (err) { showMessage(`Помилка обробки ${file.name}: ${err.message}`, 'error'); }
         }
         if (added > 0) {
-            // Після додавання першого файлу ховаємо uploader і показуємо filesContainer та кнопку "Додати ще"
             if (selectedFiles.length > 0) {
                 uploader.style.display = 'none';
                 filesContainer.style.display = 'flex';
@@ -135,7 +194,6 @@
     async function removeFile(index) {
         selectedFiles.splice(index, 1);
         if (selectedFiles.length === 0) {
-            // Якщо файлів більше немає, повертаємо uploader і ховаємо робочу область та кнопку
             uploader.style.display = 'block';
             filesContainer.style.display = 'none';
             addMoreBtn.style.display = 'none';
@@ -149,8 +207,8 @@
         if (!item) return;
         try {
             const rotatedFile = await rotateFile(item.file, 90);
-            const newThumb = await generateThumbnail(rotatedFile);
-            selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl: newThumb };
+            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
+            selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
             renderFilesGrid();
             showMessage(`Файл "${item.name}" повернуто`, 'success');
         } catch (err) { showMessage(`Помилка повороту: ${err.message}`, 'error'); }
@@ -194,11 +252,20 @@
             card.className = 'file-card';
             card.setAttribute('data-index', i);
 
+            // Підказка (tooltip) з розміром у МБ та кількістю сторінок
+            const tooltip = document.createElement('div');
+            tooltip.className = 'file-tooltip';
+            const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
+            tooltip.innerText = `${sizeMB} MB • ${data.pageCount} стор.`;
+            card.appendChild(tooltip);
+
+            // Ручка для перетягування
             const dragHandle = document.createElement('div');
             dragHandle.className = 'drag-handle';
             dragHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
             card.appendChild(dragHandle);
 
+            // Кнопки дій
             const actions = document.createElement('div');
             actions.className = 'file__actions';
             const rotateBtn = document.createElement('a');
@@ -215,6 +282,7 @@
             actions.appendChild(removeBtn);
             card.appendChild(actions);
 
+            // Мініатюра
             const canvas = document.createElement('canvas');
             const img = new Image();
             img.src = data.thumbnailUrl;
@@ -223,6 +291,7 @@
             canvas.style.height = 'auto';
             card.appendChild(canvas);
 
+            // Назва файлу
             const nameSpan = document.createElement('div');
             nameSpan.className = 'file__info__name';
             let displayName = data.name;
@@ -288,13 +357,7 @@
     uploader.addEventListener('drop', async (e) => { e.preventDefault(); uploader.classList.remove('drag-over'); const files = Array.from(e.dataTransfer.files); if (files.length) await addFiles(files); });
     fileInput.addEventListener('change', async (e) => { const files = Array.from(e.target.files); if (files.length) await addFiles(files); fileInput.value = ''; });
     mergeBtn.addEventListener('click', performMerge);
-
-    // Кнопка "Додати ще файли" – відкриває діалог вибору файлів
-    if (addMoreBtn) {
-        addMoreBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
-    }
+    if (addMoreBtn) addMoreBtn.addEventListener('click', () => fileInput.click());
 </script>
 </body>
 </html>
