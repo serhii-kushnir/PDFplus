@@ -2,569 +2,299 @@
 <html lang="uk" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Об'єднати PDF | PDF Plus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Об'єднати PDF файли онлайн | PDFPlus</title>
     <link rel="stylesheet" th:href="@{/css/nav-menu.css}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #f5f7fb;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            padding: 32px 20px;
-        }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .card {
-            background: white;
-            border-radius: 32px;
-            padding: 40px;
-            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
-            border: 1px solid #eef2ff;
-        }
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            color: #4b5563;
-            margin-bottom: 24px;
-            font-weight: 500;
-        }
-        .back-link:hover { color: #2563eb; }
-        h1 { font-size: 2rem; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
-        .sub { color: #5b6e8c; margin-bottom: 32px; }
-
-        .upload-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 24px;
-            background: #fafcff;
-            padding: 48px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .upload-area.drag-over { border-color: #2563eb; background: #f0f9ff; }
-        .upload-icon { font-size: 3rem; color: #2563eb; margin-bottom: 16px; }
-        .upload-area p { margin-bottom: 8px; font-weight: 500; }
-
-        .files-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin: 28px 0;
-            justify-content: flex-start;
-            max-height: 500px;
-            overflow-y: auto;
-            padding: 10px;
-            background: #f8fafc;
-            border-radius: 24px;
-        }
-        .file-card {
-            position: relative;
-            width: 160px;
-            background: white;
-            border-radius: 16px;
-            padding: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-            user-select: none;
-        }
-        .file-card.selected {
-            border-color: #2563eb;
-            background: #eff6ff;
-        }
-        .file-card canvas {
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            background: white;
-        }
-        .file-name {
-            font-size: 12px;
-            font-weight: 500;
-            text-align: center;
-            margin-top: 8px;
-            color: #334155;
-            word-break: break-word;
-        }
-        .file-actions {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            display: flex;
-            gap: 6px;
-        }
-        .file-rotate, .file-remove {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            transition: all 0.2s;
-        }
-        .file-rotate { color: #2563eb; }
-        .file-rotate:hover { background: #2563eb; color: white; }
-        .file-remove { color: #ef4444; }
-        .file-remove:hover { background: #ef4444; color: white; }
-        .selection-indicator {
-            position: absolute;
-            top: -8px;
-            left: -8px;
-            width: 24px;
-            height: 24px;
-            background: #2563eb;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #94a3b8;
-            width: 100%;
-        }
-        .action-bar {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 20px 0;
-        }
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #1e293b;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-secondary:hover { background: #cbd5e1; }
-        .btn-primary {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-danger:hover { background: #dc2626; }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
-        .divider {
-            width: 1px;
-            height: 30px;
-            background: #cbd5e1;
-            margin: 0 4px;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 24px;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e2e8f0;
-            border-top-color: #2563eb;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .info {
-            background: #f1f5f9;
-            border-radius: 20px;
-            padding: 20px;
-            margin-top: 32px;
-            font-size: 0.9rem;
-        }
-        @media (max-width: 640px) {
-            .card { padding: 24px; }
-            .action-bar { justify-content: center; }
-            .file-card { width: 140px; }
-            .file-actions { top: -6px; right: -6px; }
-            .file-rotate, .file-remove { width: 24px; height: 24px; font-size: 12px; }
-        }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/merge.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
 </head>
 <body>
-<div class="container">
-    <!-- Навігаційне меню -->
+<div class="main">
     <div th:replace="~{fragments/nav-menu :: nav-menu}"></div>
-    
-    <div class="card">
-        <a href="/" class="back-link">← На головну</a>
-        <h1>🔗 Об'єднати PDF</h1>
-        <div class="sub">Додайте файли, перетягуйте для зміни порядку, обертайте, видаляйте. Об'єднання виконається у показаному порядку.</div>
 
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📁</div>
-            <p><strong>Натисніть або перетягніть файли</strong></p>
-            <small>PDF, до 50 MB кожен</small>
-            <input type="file" id="fileInput" multiple accept=".pdf" style="display:none">
+    <div class="tool tool--small">
+        <div class="tool__workarea">
+            <!-- Зона завантаження (прихована після додавання файлів) -->
+            <div id="uploader" class="uploader">
+                <div class="uploader__droptxt">📂 Перетягніть PDF файли сюди або натисніть для вибору</div>
+                <input type="file" id="fileInput" multiple accept=".pdf" style="display:none">
+            </div>
+
+            <!-- Робоча область з файлами (прихована спочатку) -->
+            <div id="filesContainer" class="files-grid" style="display: none;">
+                <div class="empty-state">Файли не вибрано</div>
+            </div>
         </div>
 
-        <div id="filesContainer" class="files-grid">
-            <div class="empty-state">Файли не вибрано</div>
+        <!-- Бічна панель -->
+        <div class="tool__sidebar">
+            <div class="tool__header">
+                <h1 class="tool__header__title">Об'єднати PDF</h1>
+                <h2 class="tool__header__subtitle">Об'єднуйте PDF файли та впорядковуйте їх легко і швидко в будь-якому порядку.</h2>
+            </div>
+            <!-- Кнопка "Додати ще файли" (спочатку прихована) -->
+            <button id="addMoreFilesBtn" class="btn-add-more" style="display: none;">➕ Додати ще файли</button>
+            <div class="info">
+                <i class="fas fa-arrows-alt"></i>  Перетягніть файли для зміни порядку.
+            </div>
+            <button id="processTask" class="btn btn--process merge" disabled>
+                <span>Об'єднати PDF</span>
+                <svg width="24" height="24" viewBox="0 0 26 26" fill="#FFF"><path d="M13 26C5.82 26 0 20.18 0 13S5.82 0 13 0s13 5.82 13 13-5.82 13-13 13zm0-2c6.075 0 11-4.925 11-11S19.075 2 13 2 2 6.925 2 13s4.925 11 11 11z"/><path d="M18.684 13.105a.55.55 0 0 1-.148.378l-5.263 5.263a.55.55 0 0 1-.378.148.54.54 0 0 1-.526-.526V15.21H7.842a.54.54 0 0 1-.526-.526v-3.158A.54.54 0 0 1 7.842 11h4.526V7.842a.52.52 0 0 1 .526-.526c.148 0 .28.066.395.164l5.247 5.247a.55.55 0 0 1 .148.378z"/></svg>
+            </button>
+            <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+            <div id="statusMessage" class="status-message"></div>
         </div>
-
-        <div class="action-bar" id="actionBar" style="display: none;">
-            <button id="selectAllBtn" class="btn-secondary">✓ Вибрати всі</button>
-            <button id="clearAllBtn" class="btn-secondary">✗ Очистити</button>
-            <span class="divider"></span>
-            <button id="exportSelectedBtn" class="btn-primary">📦 Експортувати вибрані</button>
-            <button id="deleteSelectedBtn" class="btn-danger">🗑 Видалити вибрані</button>
-            <span class="divider"></span>
-            <button id="mergeBtn" class="btn-primary" disabled>🔗 Об'єднати PDF</button>
-        </div>
-
-        <div class="loading" id="loading"><div class="spinner"></div><p>Обробка...</p></div>
-        <div class="info"><i>ℹ️</i> Клік по картці – вибір файлу. 🔄 – поворот. ✕ – видалити. Перетягуйте картки для зміни порядку об'єднання.</div>
     </div>
 </div>
 
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-    let filesData = []; // { file, thumbnailUrl, name, size }
-    let selected = new Set(); // індекси вибраних файлів
+    let selectedFiles = [];
     let sortable = null;
 
-    const uploadArea = document.getElementById('uploadArea');
+    const uploader = document.getElementById('uploader');
     const fileInput = document.getElementById('fileInput');
     const filesContainer = document.getElementById('filesContainer');
-    const actionBar = document.getElementById('actionBar');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
-    const exportSelectedBtn = document.getElementById('exportSelectedBtn');
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const addMoreBtn = document.getElementById('addMoreBtn');
-    const mergeBtn = document.getElementById('mergeBtn');
-    const loadingDiv = document.getElementById('loading');
+    const mergeBtn = document.getElementById('processTask');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const statusDiv = document.getElementById('statusMessage');
+    const addMoreBtn = document.getElementById('addMoreFilesBtn');
 
-    // Генерація прев'ю першої сторінки PDF
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function showMessage(msg, type) {
+        statusDiv.innerHTML = `<div style="color:${type === 'error' ? '#b91c1c' : '#15803d'}">${msg}</div>`;
+        setTimeout(() => { if (statusDiv.innerHTML.includes(msg)) statusDiv.innerHTML = ''; }, 4000);
+    }
+
     async function generateThumbnail(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = async (e) => {
                 try {
                     const pdf = await pdfjsLib.getDocument({ data: e.target.result }).promise;
                     const page = await pdf.getPage(1);
-                    const viewport = page.getViewport({ scale: 0.3 });
+                    const viewport = page.getViewport({ scale: 0.4 });
                     const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
-                    await page.render({ canvasContext: ctx, viewport }).promise;
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
                     resolve(canvas.toDataURL());
-                } catch (err) {
-                    reject(err);
-                }
+                } catch (err) { reject(err); }
             };
             reader.onerror = reject;
             reader.readAsArrayBuffer(file);
         });
     }
 
-    // Поворот файлу через сервер
     async function rotateFile(file, angle) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('angle', angle);
-        const response = await fetch('/api/pdf/rotate', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error('Помилка повороту');
-        const blob = await response.blob();
+        const res = await fetch('/api/pdf/rotate', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Помилка повороту');
+        const blob = await res.blob();
         return new File([blob], file.name, { type: 'application/pdf' });
     }
 
-    // Додавання файлів
     async function addFiles(newFiles) {
         let added = 0;
         for (const file of newFiles) {
-            if (file.type !== 'application/pdf') {
-                alert(`Файл ${file.name} не є PDF`);
-                continue;
-            }
-            if (filesData.some(f => f.file.name === file.name && f.file.size === file.size)) {
-                alert(`Файл ${file.name} вже доданий`);
-                continue;
-            }
+            if (file.type !== 'application/pdf') { showMessage(`Файл "${file.name}" не є PDF`, 'error'); continue; }
+            if (selectedFiles.some(f => f.file.name === file.name && f.file.size === file.size)) { showMessage(`Файл "${file.name}" вже доданий`, 'error'); continue; }
             try {
-                const thumbnailUrl = await generateThumbnail(file);
-                filesData.push({ file, thumbnailUrl, name: file.name, size: file.size });
+                const thumb = await generateThumbnail(file);
+                selectedFiles.push({ file, thumbnailUrl: thumb, name: file.name, size: file.size });
                 added++;
-            } catch (err) {
-                alert(`Помилка обробки ${file.name}: ${err.message}`);
-            }
+            } catch (err) { showMessage(`Помилка обробки ${file.name}: ${err.message}`, 'error'); }
         }
         if (added > 0) {
+            // Після додавання першого файлу ховаємо uploader і показуємо filesContainer та кнопку "Додати ще"
+            if (selectedFiles.length > 0) {
+                uploader.style.display = 'none';
+                filesContainer.style.display = 'flex';
+                addMoreBtn.style.display = 'block';
+            }
             renderFilesGrid();
-            updateMergeButtonState();
+            updateMergeButton();
         }
-        if (filesData.length > 0) actionBar.style.display = 'flex';
     }
 
-    // Оновлення стану кнопки Об'єднати
-    function updateMergeButtonState() {
-        mergeBtn.disabled = filesData.length < 2;
-    }
-
-    // Видалення файлу за індексом
     async function removeFile(index) {
-        filesData.splice(index, 1);
-        selected.delete(index);
-        // Зсуваємо індекси у Set для вибраних після видалення
-        const newSelected = new Set();
-        for (let s of selected) {
-            if (s > index) newSelected.add(s - 1);
-            else if (s < index) newSelected.add(s);
+        selectedFiles.splice(index, 1);
+        if (selectedFiles.length === 0) {
+            // Якщо файлів більше немає, повертаємо uploader і ховаємо робочу область та кнопку
+            uploader.style.display = 'block';
+            filesContainer.style.display = 'none';
+            addMoreBtn.style.display = 'none';
         }
-        selected = newSelected;
-        if (filesData.length === 0) {
-            filesContainer.innerHTML = '<div class="empty-state">Файли не вибрано</div>';
-            actionBar.style.display = 'none';
-            if (sortable) sortable.destroy();
-        } else {
-            renderFilesGrid();
-        }
-        updateMergeButtonState();
+        renderFilesGrid();
+        updateMergeButton();
     }
 
-    // Поворот файлу за індексом
     async function rotateFileAtIndex(index) {
-        const item = filesData[index];
+        const item = selectedFiles[index];
         if (!item) return;
         try {
             const rotatedFile = await rotateFile(item.file, 90);
             const newThumb = await generateThumbnail(rotatedFile);
-            filesData[index] = { ...item, file: rotatedFile, thumbnailUrl: newThumb };
+            selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl: newThumb };
             renderFilesGrid();
-        } catch (err) {
-            alert('Помилка повороту: ' + err.message);
-        }
+            showMessage(`Файл "${item.name}" повернуто`, 'success');
+        } catch (err) { showMessage(`Помилка повороту: ${err.message}`, 'error'); }
     }
 
-    // Експорт вибраних файлів (кожен окремо)
-    async function exportSelectedFiles() {
-        if (selected.size === 0) {
-            alert('Не вибрано жодного файлу для експорту');
-            return;
-        }
-        for (let idx of selected) {
-            const file = filesData[idx].file;
-            const url = URL.createObjectURL(file);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file.name;
-            a.click();
-            URL.revokeObjectURL(url);
-            // невелика затримка, щоб браузер встиг обробити download
-            await new Promise(r => setTimeout(r, 200));
-        }
+    function initSortable() {
+        if (sortable) sortable.destroy();
+        if (!filesContainer) return;
+        sortable = new Sortable(filesContainer, {
+            animation: 200,
+            onEnd: function() {
+                const items = filesContainer.querySelectorAll('.file-card');
+                const newOrder = [];
+                items.forEach(item => {
+                    const oldIdx = parseInt(item.getAttribute('data-index'), 10);
+                    if (!isNaN(oldIdx) && selectedFiles[oldIdx]) newOrder.push(selectedFiles[oldIdx]);
+                });
+                if (newOrder.length === selectedFiles.length) {
+                    selectedFiles = newOrder;
+                }
+                items.forEach((item, newIdx) => {
+                    item.setAttribute('data-index', newIdx);
+                });
+                updateMergeButton();
+            }
+        });
     }
 
-    // Видалення вибраних файлів
-    async function deleteSelectedFiles() {
-        if (selected.size === 0) {
-            alert('Не вибрано жодного файлу для видалення');
-            return;
-        }
-        if (!confirm(`Ви дійсно хочете видалити ${selected.size} вибраних файлів?`)) return;
-        // Видаляємо з кінця, щоб індекси не збивалися
-        const indices = Array.from(selected).sort((a,b) => b - a);
-        for (let idx of indices) {
-            await removeFile(idx);
-        }
-        selected.clear();
-        renderFilesGrid();
-        updateMergeButtonState();
-    }
-
-    // Вибір/зняття файлу
-    function toggleFileSelection(index, event) {
-        // Якщо клік по кнопках (rotate, remove) – не чіпаємо вибір
-        if (event.target.closest('.file-rotate') || event.target.closest('.file-remove')) return;
-        if (selected.has(index)) selected.delete(index);
-        else selected.add(index);
-        renderFilesGrid();
-    }
-
-    // Відображення сітки
     function renderFilesGrid() {
         filesContainer.innerHTML = '';
-        for (let i = 0; i < filesData.length; i++) {
-            const data = filesData[i];
+        if (selectedFiles.length === 0) {
+            filesContainer.innerHTML = '<div class="empty-state">Файли не вибрано</div>';
+            if (sortable) sortable.destroy();
+            sortable = null;
+            return;
+        }
+
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const data = selectedFiles[i];
             const card = document.createElement('div');
             card.className = 'file-card';
-            if (selected.has(i)) card.classList.add('selected');
             card.setAttribute('data-index', i);
 
-            // Індикатор вибору
-            const indicator = document.createElement('div');
-            indicator.className = 'selection-indicator';
-            indicator.innerText = selected.has(i) ? '✓' : '';
-            card.appendChild(indicator);
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+            card.appendChild(dragHandle);
 
             const actions = document.createElement('div');
-            actions.className = 'file-actions';
-
-            const rotateBtn = document.createElement('div');
-            rotateBtn.className = 'file-rotate';
-            rotateBtn.innerHTML = '🔄';
-            rotateBtn.title = 'Повернути на 90°';
-            rotateBtn.onclick = async (e) => {
-                e.stopPropagation();
-                await rotateFileAtIndex(i);
-            };
-
-            const removeBtn = document.createElement('div');
-            removeBtn.className = 'file-remove';
-            removeBtn.innerHTML = '✕';
-            removeBtn.title = 'Видалити';
-            removeBtn.onclick = (e) => {
-                e.stopPropagation();
-                removeFile(i);
-            };
-
+            actions.className = 'file__actions';
+            const rotateBtn = document.createElement('a');
+            rotateBtn.className = 'file__btn rotate';
+            rotateBtn.innerHTML = '<i class="fas fa-undo-alt"></i>';
+            rotateBtn.href = 'javascript:;';
+            rotateBtn.onclick = async (e) => { e.stopPropagation(); await rotateFileAtIndex(i); };
+            const removeBtn = document.createElement('a');
+            removeBtn.className = 'file__btn remove';
+            removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            removeBtn.href = 'javascript:;';
+            removeBtn.onclick = (e) => { e.stopPropagation(); removeFile(i); };
             actions.appendChild(rotateBtn);
             actions.appendChild(removeBtn);
+            card.appendChild(actions);
 
             const canvas = document.createElement('canvas');
             const img = new Image();
             img.src = data.thumbnailUrl;
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                canvas.getContext('2d').drawImage(img, 0, 0);
-            };
+            img.onload = () => { canvas.width = img.width; canvas.height = img.height; canvas.getContext('2d').drawImage(img, 0, 0); };
             canvas.style.width = '100%';
             canvas.style.height = 'auto';
+            card.appendChild(canvas);
 
             const nameSpan = document.createElement('div');
-            nameSpan.className = 'file-name';
+            nameSpan.className = 'file__info__name';
             let displayName = data.name;
             if (displayName.length > 25) displayName = displayName.slice(0, 22) + '...';
             nameSpan.innerText = displayName;
-
-            card.appendChild(actions);
-            card.appendChild(canvas);
             card.appendChild(nameSpan);
 
-            card.addEventListener('click', (e) => toggleFileSelection(i, e));
             filesContainer.appendChild(card);
         }
         initSortable();
     }
 
-    // Drag & drop сортування (з оновленням вибраних індексів)
-    function initSortable() {
-        if (sortable) sortable.destroy();
-        if (filesContainer.children.length === 0) return;
-        sortable = new Sortable(filesContainer, {
-            animation: 200,
-            handle: '.file-card',
-            draggable: '.file-card',
-            onEnd: () => {
-                const newOrder = [];
-                const items = filesContainer.querySelectorAll('.file-card');
-                const oldSelected = new Set(selected);
-                selected.clear();
-                items.forEach((item, newIdx) => {
-                    const oldIdx = parseInt(item.getAttribute('data-index'), 10);
-                    newOrder.push(filesData[oldIdx]);
-                    if (oldSelected.has(oldIdx)) selected.add(newIdx);
-                });
-                filesData.length = 0;
-                filesData.push(...newOrder);
-                items.forEach((item, newIdx) => item.setAttribute('data-index', newIdx));
-                updateMergeButtonState();
-            }
-        });
+    function updateMergeButton() {
+        mergeBtn.disabled = selectedFiles.length < 2;
     }
 
-    // Обробники подій
-    uploadArea.addEventListener('click', () => fileInput.click());
-    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
-    uploadArea.addEventListener('drop', async e => {
-        e.preventDefault();
-        uploadArea.classList.remove('drag-over');
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length) await addFiles(files);
-    });
-    fileInput.addEventListener('change', async e => {
-        const files = Array.from(e.target.files);
-        if (files.length) await addFiles(files);
-        fileInput.value = '';
-    });
-    addMoreBtn.addEventListener('click', () => fileInput.click());
-
-    selectAllBtn.addEventListener('click', () => {
-        for (let i = 0; i < filesData.length; i++) selected.add(i);
-        renderFilesGrid();
-    });
-    clearAllBtn.addEventListener('click', () => {
-        selected.clear();
-        renderFilesGrid();
-    });
-    exportSelectedBtn.addEventListener('click', exportSelectedFiles);
-    deleteSelectedBtn.addEventListener('click', deleteSelectedFiles);
-
-    mergeBtn.addEventListener('click', async () => {
-        if (filesData.length < 2) return;
-        const formData = new FormData();
-        for (let item of filesData) formData.append('files', item.file);
+    async function performMerge() {
+        if (selectedFiles.length < 2) { showMessage('Додайте принаймні 2 PDF-файли', 'error'); return; }
         mergeBtn.disabled = true;
-        loadingDiv.style.display = 'block';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15 + 5;
+            if (progress >= 95) { progress = 95; clearInterval(interval); }
+            progressBar.style.width = `${Math.min(progress, 95)}%`;
+        }, 150);
+
+        const formData = new FormData();
+        for (let item of selectedFiles) formData.append('files', item.file);
         try {
-            const res = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
-            if (res.ok) {
-                const blob = await res.blob();
+            const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
+            clearInterval(interval);
+            if (response.ok) {
+                progressBar.style.width = '100%';
+                const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = 'merged_result.pdf';
                 a.click();
                 URL.revokeObjectURL(url);
-                window.location.href = '/result?message=PDF успішно об\'єднано! Файл буде видалено через 60 хвилин.';
-            } else throw new Error('Помилка об\'єднання');
-        } catch (err) {
-            alert('Сталася помилка: ' + err.message);
-        } finally {
-            loadingDiv.style.display = 'none';
-            mergeBtn.disabled = false;
-        }
-    });
+                showMessage('✅ PDF успішно об\'єднано!', 'success');
+                setTimeout(() => {
+                    if (confirm('Очистити список файлів?')) {
+                        selectedFiles = [];
+                        uploader.style.display = 'block';
+                        filesContainer.style.display = 'none';
+                        addMoreBtn.style.display = 'none';
+                        renderFilesGrid();
+                        updateMergeButton();
+                    }
+                }, 500);
+            } else throw new Error(await response.text() || 'Помилка сервера');
+        } catch (err) { showMessage(`❌ Помилка: ${err.message}`, 'error'); }
+        finally { setTimeout(() => { progressContainer.style.display = 'none'; mergeBtn.disabled = selectedFiles.length < 2; }, 1000); }
+    }
 
-    // Початковий стан
-    console.log('Сторінка готова');
+    // Обробники подій
+    uploader.addEventListener('click', () => fileInput.click());
+    uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('drag-over'); });
+    uploader.addEventListener('dragleave', () => { uploader.classList.remove('drag-over'); });
+    uploader.addEventListener('drop', async (e) => { e.preventDefault(); uploader.classList.remove('drag-over'); const files = Array.from(e.dataTransfer.files); if (files.length) await addFiles(files); });
+    fileInput.addEventListener('change', async (e) => { const files = Array.from(e.target.files); if (files.length) await addFiles(files); fileInput.value = ''; });
+    mergeBtn.addEventListener('click', performMerge);
+
+    // Кнопка "Додати ще файли" – відкриває діалог вибору файлів
+    if (addMoreBtn) {
+        addMoreBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
 </script>
 </body>
 </html>

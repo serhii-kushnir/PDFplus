@@ -10,7 +10,6 @@ public class PdfApplication {
     public static void main(String[] args) {
         SpringApplication.run(PdfApplication.class, args);
         System.out.println("📄 PDF Plus запущено!");
-        System.out.println("📍 http://localhost:8080/");
-        System.out.println("🕒 Таймліф: файли живуть 30-60 хвилин");
+        System.out.println("📍 http://localhost:8082/");
     }
 }

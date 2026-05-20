@@ -1,0 +1,189 @@
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7fb;
+            color: #1f2a3e;
+            line-height: 1.5;
+        }
+        .main { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
+        .tool.tool--small {
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            border: 1px solid #eef2ff;
+        }
+        .tool__workarea { flex: 3; min-width: 280px;
+        //padding: 32px 28px;
+        background: #ffffff; }
+        .uploader {
+            border: 2px dashed #cbd5e1;
+            border-radius: 24px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            background-color: #fefefe;
+            margin: 10%;
+        }
+        .uploader.drag-over { border-color: #e74c3c; background-color: #fff5f3; }
+        .uploader__droptxt { font-size: 0.85rem; color: #5b6e8c; margin-top: 8px; }
+        /* Приховуємо непотрібні кнопки з оригінального фрагмента */
+        .uploader__btn, .uploader__extra { display: none; }
+        .files-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            //margin: 24px 0;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 4%;
+            background: #f8fafc;
+            //border-radius: 24px;
+            justify-content: flex-start;
+        }
+        .file-card {
+            position: relative;
+            width: 30%;
+            background: white;
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+            cursor: grab;
+            border: 2px solid transparent;
+        }
+        .file-card:active { cursor: grabbing; }
+        .drag-handle {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            color: #94a3b8;
+            font-size: 1rem;
+            cursor: grab;
+            background: rgba(255,255,255,0.8);
+            border-radius: 20px;
+            padding: 2px 6px;
+            z-index: 2;
+        }
+        .file-card canvas { width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; background: white; margin-bottom: 8px; }
+        .file__info__name { font-size: 12px; font-weight: 500; text-align: center; color: #334155; word-break: break-word; margin-top: 4px; }
+        .file__actions {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            display: flex;
+            gap: 6px;
+            z-index: 3;
+        }
+        .file__btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .file__btn.rotate { color: #2563eb; }
+        .file__btn.rotate:hover { background: #2563eb; color: white; }
+        .file__btn.remove { color: #ef4444; }
+        .file__btn.remove:hover { background: #ef4444; color: white; }
+        .tool__sidebar {
+            flex: 1;
+            min-width: 280px;
+            background: #f9fafb00;
+            border-left: 5px solid #eef2ff;
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .tool__header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .tool__header__title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d3a4f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 12px;
+        }
+        .tool__header__subtitle {
+            font-size: 0.95rem;
+            color: #5b6e8c;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+        .option__panel__title { display: none; }
+        .info {
+            background: #eef2ff;
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 0.85rem;
+            color: #1e40af;
+            margin-bottom: 24px;
+        }
+        .btn-add-more {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+            width: 100%;
+            text-align: center;
+        }
+        .btn-add-more:hover {
+            background-color: #e2e8f0;
+            border-color: #94a3b8;
+        }
+        .btn.btn--process {
+            background: linear-gradient(95deg, #e74c3c, #c0392b);
+            border: none;
+            padding: 14px 20px;
+            border-radius: 60px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn.btn--process:disabled { opacity: 0.6; cursor: not-allowed; }
+        .progress-container {
+            margin-top: 20px;
+            background: #e2e8f0;
+            border-radius: 60px;
+            height: 6px;
+            width: 100%;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar { width: 0%; height: 100%; background: #e74c3c; transition: width 0.2s linear; }
+        .status-message { margin-top: 16px; font-size: 0.85rem; text-align: center; }
+        .empty-state { text-align: center; padding: 40px; color: #94a3b8; width: 100%; }
+        @media (max-width: 768px) {
+            .main { padding: 16px; }
+            .tool.tool--small { flex-direction: column; }
+            .tool__sidebar { border-left: none; border-top: 1px solid #eef2ff; }
+            .file-card { width: 140px; }
+            .tool__header__title { font-size: 1.5rem; }
+        }
