@@ -101,7 +101,7 @@
             width: 30%;                /* або фіксована ширина, як вам треба */
             background: white;
             border-radius: 16px;
-            padding: 12px;
+            padding: 1%;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             transition: all 0.2s;
             cursor: grab;
