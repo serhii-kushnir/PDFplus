@@ -1,330 +1,624 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f5f7fb;
-            color: #1f2a3e;
-            line-height: 1.5;
-        }
-        .file-card:hover .file-tooltip {
-            visibility: visible;
-            opacity: 1;
-        } {
-            border-color: #e74c3c;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-        }
-        .file-card canvas {
-            width: 100%;
-            height: auto;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            margin-bottom: 8px;
-        }
-        .file-card:hover {
-            visibility: visible;
-            opacity: 1;
-        }
-        .file-tooltip {
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.2s, visibility 0.2s;
-            position: absolute;
-            bottom: calc(100% + 12px);  /* вище картки */
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 400;
-            white-space: nowrap;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .file-tooltip::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: #333 transparent transparent transparent;
-        }
-        .file-tooltip {Ф
-            bottom: calc(100% + 8px);
-        }
-        .main { max-width: 1400px; margin: 0 auto; padding: 20px 24px; }
-        .tool.tool--small {
-            background: #ffffff;
-            border-radius: 32px;
-            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.1);
-            display: flex;
-            flex-wrap: wrap;
-            overflow: hidden;
-            border: 1px solid #eef2ff;
-        }
-        .tool__workarea { flex: 3; min-width: 280px;
-        //padding: 32px 28px;
-        background: #ffffff; }
-        .uploader {
-            border: 2px dashed #cbd5e1;
-            border-radius: 24px;
-            padding: 48px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.25s;
-            background-color: #fefefe;
-            margin: 10%;
-        }
-        .uploader.drag-over { border-color: #e74c3c; background-color: #fff5f3; }
-        .uploader__droptxt { font-size: 0.85rem; color: #5b6e8c; margin-top: 8px; }
-        /* Приховуємо непотрібні кнопки з оригінального фрагмента */
-        .uploader__btn, .uploader__extra { display: none; }
-        .files-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            //margin: 24px 0;
-            max-height: 500px;
-            overflow-y: auto;
-            padding: 4%;
-            background: #f8fafc;
-            //border-radius: 24px;
-            justify-content: flex-start;
-        }
-        .file-card {
-            position: relative;
-            width: 30%;                /* або фіксована ширина, як вам треба */
-            background: white;
-            border-radius: 16px;
-            padding: 1%;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: all 0.2s;
-            cursor: grab;
-            border: 2px solid transparent;
-            display: flex;
-            flex-direction: column;   /* вертикальне розташування */
-        }
-        .file-card:active { cursor: grabbing; }
-        .drag-handle {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            color: #94a3b8;
-            font-size: 1rem;
-            cursor: grab;
-            background: rgba(255,255,255,0.8);
-            border-radius: 20px;
-            padding: 2px 6px;
-            z-index: 2;
-        }
-            .file-card canvas {
-                width: 100%;
-                height: auto;
-                border-radius: 8px;
-                border: 1px solid #e2e8f0;
-                background: white;
-                margin-bottom: 8px;
-            }
-        .file__info__name {
-            font-size: 12px;
-            font-weight: 500;
-            text-align: center;
-            color: #334155;
-            word-break: break-word;
-            margin-top: auto;        /* штовхає назву вниз */
-            padding-top: 8px;        /* додатковий відступ зверху (опціонально) */
-        }
-        .file__actions {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            display: flex;
-            gap: 6px;
-            z-index: 3;
-        }
-        .file__btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            transition: all 0.2s;
-            text-decoration: none;
-        }
-        .file__btn.rotate { color: #2563eb; }
-        .file__btn.rotate:hover { background: #2563eb; color: white; }
-        .file__btn.remove { color: #ef4444; }
-        .file__btn.remove:hover { background: #ef4444; color: white; }
-        .tool__sidebar {
-            flex: 1;
-            min-width: 280px;
-            background: #f9fafb00;
-            border-left: 5px solid #eef2ff;
-            padding: 32px 24px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-        }
-        #processTask {
-            margin-top: auto;  /* штовхає кнопку вниз */
-            margin-bottom: 0;  /* зайве, але для порядку */
-        }
-        .tool__header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .tool__header__title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #1e293b, #2d3a4f);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 12px;
-        }
-        .tool__header__subtitle {
-            font-size: 0.95rem;
-            color: #5b6e8c;
-            font-weight: 400;
-            line-height: 1.4;
-        }
-        .option__panel__title { display: none; }
-        .info {
-            background: #eef2ff;
-            border-radius: 16px;
-            padding: 16px;
-            font-size: 0.85rem;
-            color: #1e40af;
-            margin-bottom: 24px;
-        }
-        .btn-add-more {
-            background-color: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            color: #1e293b;
-            padding: 10px 16px;
-            border-radius: 40px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 24px;
-            width: 100%;
-            text-align: center;
-        }
-        .btn-add-more:hover {
-            background-color: #e2e8f0;
-            border-color: #94a3b8;
-        }
-        .btn.btn--process {
-            background: linear-gradient(95deg, #e74c3c, #c0392b);
-            border: none;
-            padding: 14px 20px;
-            border-radius: 60px;
-            color: white;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .btn.btn--process:disabled { opacity: 0.6; cursor: not-allowed; }
-        .progress-container {
-            margin-top: 20px;
-            background: #e2e8f0;
-            border-radius: 60px;
-            height: 6px;
-            width: 100%;
-            overflow: hidden;
-            display: none;
-        }
-        /* Стилі для спливаючих повідомлень (тостів) */
-        .toast-notification {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: #fff;
-            border-radius: 12px;
-            padding: 16px 24px;
-            min-width: 280px;
-            max-width: 400px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            z-index: 9999;
-            font-size: 14px;
-            font-weight: 500;
-            animation: slideInRight 0.3s ease-out;
-            border-left: 4px solid;
-        }
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f5f7fb;
+    color: #1f2a3e;
+    line-height: 1.5;
+}
 
-        .toast-notification.toast-success {
-            border-left-color: #10b981;
-            background: #f0fdf4;
-            color: #065f46;
-        }
+.main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px;
+}
 
-        .toast-notification.toast-error {
-            border-left-color: #ef4444;
-            background: #fef2f2;
-            color: #991b1b;
-        }
+/* ===== ОКРЕМИЙ ЗАГОЛОВОК ===== */
+.tool__header {
+    text-align: center;
+    margin-bottom: 24px;
+}
 
-        .toast-notification i {
-            font-size: 20px;
-        }
+.tool__header__title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1e293b, #2d3a4f);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 8px;
+}
 
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
+.tool__header__subtitle {
+    font-size: 1rem;
+    color: #5b6e8c;
+    font-weight: 400;
+    line-height: 1.4;
+}
 
-        .toast-notification.fade-out {
-            animation: fadeOut 0.4s ease-out forwards;
-        }
+/* ===== ВЕРХНЯ ПАНЕЛЬ (спочатку прихована) ===== */
+.tool__sidebar.top-sidebar {
+    display: none;
+    background: #ffffff;
+    border-radius: 32px;
+    padding: 16px 28px;
+    margin-bottom: 24px;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eef2ff;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 80px;
+    flex: none;
+    border-left: none;
+}
 
-        @keyframes fadeOut {
-            to {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-        }
+.sidebar-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
 
-        @media (max-width: 640px) {
-            .toast-notification {
-                left: 20px;
-                right: 20px;
-                min-width: auto;
-                bottom: 20px;
-                animation: slideInRight 0.4s ease-out;
-            }
-        }
-        .progress-bar { width: 0%; height: 100%; background: #e74c3c; transition: width 0.2s linear; }
-        .status-message { margin-top: 16px; font-size: 0.85rem; text-align: center; }
-        .empty-state { text-align: center; padding: 40px; color: #94a3b8; width: 100%; }
-        @media (max-width: 768px) {
-            .main { padding: 16px; }
-            .tool.tool--small { flex-direction: column; }
-            .tool__sidebar { border-left: none; border-top: 1px solid #eef2ff; }
-            .file-card { width: 140px; }
-            .tool__header__title { font-size: 1.5rem; }
-        }
+.btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+.separator {
+    width: 1px;
+    height: 30px;
+    background-color: #e2e8f0;
+    margin: 0 4px;
+}
+
+/* Стилі для кнопок */
+.btn-secondary {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-secondary:hover {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.btn-danger {
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-danger:hover {
+    background-color: #fecaca;
+    border-color: #f87171;
+}
+
+.tool__sidebar.top-sidebar .btn-add-more {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: auto;
+    white-space: nowrap;
+}
+
+.tool__sidebar.top-sidebar .btn-add-more:hover {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.tool__sidebar.top-sidebar .btn.btn--process {
+    background: linear-gradient(95deg, #e74c3c, #c0392b);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 40px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.tool__sidebar.top-sidebar .btn.btn--process:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tool__sidebar.top-sidebar .progress-container,
+.tool__sidebar.top-sidebar .status-message {
+    width: 100%;
+    order: 10;
+    margin-top: 12px;
+}
+
+/* ===== ОСНОВНА РОБОЧА ОБЛАСТЬ ===== */
+.tool.tool--small {
+    background: #ffffff;
+    border-radius: 32px;
+    box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid #eef2ff;
+}
+
+/* Зона завантаження – центрування кнопки */
+.uploader {
+    border: 2px dashed #cbd5e1;
+    border-radius: 32px;
+    padding: 10%;
+    cursor: pointer;
+    transition: all 0.25s;
+    background-color: #fefefe;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.uploader.drag-over {
+    border-color: #e74c3c;
+    background-color: #fff5f3;
+}
+
+/* Стилізована кнопка "Вибрати PDF файли" */
+.uploader__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #e74c3c;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 12px 28px;
+    border-radius: 40px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 0 auto 16px auto;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.uploader__btn:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+}
+
+.uploader__droptxt {
+    font-size: 0.85rem;
+    color: #5b6e8c;
+    margin-top: 8px;
+}
+
+.uploader__btn, .uploader__extra {
+    display: block;
+}
+
+.files-grid {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 5%;
+    row-gap: 16px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 16px;
+    padding-top: 41px;
+    background: #f8fafc;
+    justify-content: flex-start;
+    border-radius: 24px;
+}
+
+.file-card {
+    position: relative;
+    width: 30%;
+    background: white;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s;
+    cursor: grab;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-card:active {
+    cursor: grabbing;
+}
+
+.file-card:hover {
+    border-color: #e74c3c;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.file-card canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    margin-bottom: 8px;
+}
+
+.drag-handle {
+    position: absolute;
+    top: -10px;
+    right: 34px;
+    left: auto;
+    color: #94a3b8;
+    font-size: 1rem;
+    cursor: grab;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    padding: 2px 6px;
+    z-index: 3;
+}
+
+.file__info__name {
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    color: #334155;
+    word-break: break-word;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.file__actions {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    display: flex;
+    gap: 6px;
+    z-index: 4;
+}
+
+.file__btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.file__btn.rotate {
+    color: #2563eb;
+}
+
+.file__btn.rotate:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.file__btn.remove {
+    color: #ef4444;
+}
+
+.file__btn.remove:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* Круглий чек-бокс */
+.file-card-checkbox {
+    position: absolute;
+    top: -10px;
+    left: 8px;
+    z-index: 5;
+    width: 22px;
+    height: 22px;
+}
+
+.file-card-checkbox input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
+.file-card-checkbox .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 22px;
+    height: 22px;
+    background-color: #ffffff;
+    border: 2px solid #cbd5e1;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.file-card-checkbox:hover .checkmark {
+    border-color: #e74c3c;
+}
+
+.file-card-checkbox input:checked ~ .checkmark {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+.file-card-checkbox .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 7px;
+    top: 3px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.file-card-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.file-card.selected {
+    border-color: #e74c3c;
+    background-color: #fff5f3;
+}
+
+.file-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s, visibility 0.2s;
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.file-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.file-card:hover .file-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.progress-container {
+    margin-top: 20px;
+    background: #e2e8f0;
+    border-radius: 60px;
+    height: 6px;
+    width: 100%;
+    overflow: hidden;
+    display: none;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #e74c3c;
+    transition: width 0.2s linear;
+}
+
+.status-message {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #94a3b8;
+    width: 100%;
+}
+
+/* Тости */
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 24px;
+    min-width: 280px;
+    max-width: 400px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideInRight 0.3s ease-out;
+    border-left: 4px solid;
+}
+
+.toast-notification.toast-success {
+    border-left-color: #10b981;
+    background: #f0fdf4;
+    color: #065f46;
+}
+
+.toast-notification.toast-error {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.toast-notification i {
+    font-size: 20px;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-notification.fade-out {
+    animation: fadeOut 0.4s ease-out forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* ===== АДАПТИВНІСТЬ ===== */
+@media (max-width: 860px) {
+    .tool__sidebar.top-sidebar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px 20px;
+        justify-content: center;
+    }
+    .sidebar-controls {
+        justify-content: center;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .btn-group {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .separator {
+        display: none;
+    }
+    .tool__sidebar.top-sidebar .btn-add-more,
+    .tool__sidebar.top-sidebar .btn.btn--process,
+    .btn-secondary,
+    .btn-danger {
+        white-space: normal;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .main {
+        padding: 16px;
+    }
+    .tool.tool--small {
+        flex-direction: column;
+    }
+    .file-card {
+        width: calc(50% - 12px);
+        min-width: 130px;
+    }
+    .tool__header__title {
+        font-size: 1.3rem;
+    }
+    .uploader {
+        padding: 32px 16px;
+        margin-bottom: 16px;
+    }
+    .files-grid {
+        padding: 12px;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .file-card {
+        width: calc(100% - 20px);
+        max-width: 200px;
+        margin: 0 auto;
+    }
+    .files-grid {
+        justify-content: center;
+    }
+    .tool__sidebar.top-sidebar {
+        padding: 12px 16px;
+    }
+    .sidebar-controls {
+        width: 100%;
+    }
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+    .tool__sidebar.top-sidebar .btn-add-more,
+    .tool__sidebar.top-sidebar .btn.btn--process,
+    .btn-secondary,
+    .btn-danger {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 640px) {
+    .toast-notification {
+        left: 20px;
+        right: 20px;
+        min-width: auto;
+        bottom: 20px;
+    }
+}
+
+.btn-secondary:disabled,
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
