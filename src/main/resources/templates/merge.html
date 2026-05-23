@@ -215,33 +215,44 @@
     }
 
     async function removeFile(index) {
-        selectedFiles.splice(index, 1);
-        const newSelected = new Set();
-        for (let idx of selectedIndices) {
-            if (idx > index) newSelected.add(idx - 1);
-            else if (idx < index) newSelected.add(idx);
-        }
-        selectedIndices = newSelected;
-        if (selectedFiles.length === 0) {
-            uploader.style.display = 'block';
-            filesContainer.style.display = 'none';
-            topSidebar.style.display = 'none';
-        }
-        renderFilesGrid();
-        updateMergeButtons();
+    const fileName = selectedFiles[index]?.name || 'файл';
+    const displayName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+
+    if (!confirm(`Видалити файл "${displayName}"?`)) return;
+
+    selectedFiles.splice(index, 1);
+    const newSelected = new Set();
+    for (let idx of selectedIndices) {
+        if (idx > index) newSelected.add(idx - 1);
+        else if (idx < index) newSelected.add(idx);
     }
+    selectedIndices = newSelected;
+
+    if (selectedFiles.length === 0) {
+        uploader.style.display = 'block';
+        filesContainer.style.display = 'none';
+        topSidebar.style.display = 'none';
+    }
+    renderFilesGrid();
+    updateMergeButtons();
+    showMessage(`✅ Видалено файл: ${displayName}`, 'success');
+}
 
     async function rotateFileAtIndex(index) {
-        const item = selectedFiles[index];
-        if (!item) return;
-        try {
-            const rotatedFile = await rotateFile(item.file, 90);
-            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
-            selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
-            renderFilesGrid();
-            showMessage(`Файл "${item.name}" повернуто`, 'success');
-        } catch (err) { showMessage(`Помилка повороту: ${err.message}`, 'error'); }
+    const item = selectedFiles[index];
+    if (!item) return;
+    const displayName = item.name.length > 40 ? item.name.substring(0, 37) + '...' : item.name;
+
+    try {
+        const rotatedFile = await rotateFile(item.file, 90);
+        const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
+        selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
+        renderFilesGrid();
+        showMessage(`🔄 Повернуто: ${displayName}`, 'success');
+    } catch (err) {
+        showMessage(`❌ Помилка повороту ${displayName}: ${err.message}`, 'error');
     }
+}
 
     async function rotateSelected() {
         if (selectedIndices.size === 0) { showMessage('Не вибрано жодного файлу', 'error'); return; }
@@ -264,85 +275,132 @@
     }
 
     function toggleFileSelection(index, event) {
-        if (event && (event.target.closest('.file__btn') || event.target.closest('.drag-handle'))) return;
-        if (selectedIndices.has(index)) selectedIndices.delete(index);
-        else selectedIndices.add(index);
-        renderFilesGrid();
-        updateMergeButtons();
+    if (event && (event.target.closest('.file__btn') || event.target.closest('.drag-handle'))) return;
+
+    const wasSelected = selectedIndices.has(index);
+    if (wasSelected) {
+        selectedIndices.delete(index);
+    } else {
+        selectedIndices.add(index);
     }
+    renderFilesGrid();
+    updateMergeButtons();
+
+    // Показуємо повідомлення
+    const fileName = selectedFiles[index]?.name || '';
+    if (!wasSelected) {
+        showMessage(`✅ Вибрано файл: ${fileName.substring(0, 30)}${fileName.length > 30 ? '...' : ''}`, 'success');
+    } else {
+        showMessage(`✖️ Знято виділення: ${fileName.substring(0, 30)}${fileName.length > 30 ? '...' : ''}`, 'info');
+    }
+}
 
     function selectAll() {
-        for (let i = 0; i < selectedFiles.length; i++) selectedIndices.add(i);
-        renderFilesGrid();
-        updateMergeButtons();
+    const previousCount = selectedIndices.size;
+    for (let i = 0; i < selectedFiles.length; i++) {
+        selectedIndices.add(i);
     }
+    renderFilesGrid();
+    updateMergeButtons();
+
+    const newCount = selectedIndices.size;
+    if (newCount > 0) {
+        showMessage(`✅ Вибрано ${newCount} з ${selectedFiles.length} файлів`, 'success');
+    }
+}
 
     function clearSelection() {
-        selectedIndices.clear();
-        renderFilesGrid();
-        updateMergeButtons();
+    const previousCount = selectedIndices.size;
+    selectedIndices.clear();
+    renderFilesGrid();
+    updateMergeButtons();
+
+    if (previousCount > 0) {
+        showMessage(`✖️ Знято виділення з ${previousCount} файлів`, 'info');
     }
+}
 
     async function deleteSelected() {
-        if (selectedIndices.size === 0) { showMessage('Не вибрано жодного файлу', 'error'); return; }
-        if (!confirm(`Видалити ${selectedIndices.size} вибраних файлів?`)) return;
-        const indices = Array.from(selectedIndices).sort((a,b) => b - a);
-        for (let idx of indices) {
-            selectedFiles.splice(idx, 1);
-        }
-        selectedIndices.clear();
-        if (selectedFiles.length === 0) {
-            uploader.style.display = 'block';
-            filesContainer.style.display = 'none';
-            topSidebar.style.display = 'none';
-        }
-        renderFilesGrid();
-        updateMergeButtons();
-        showMessage(`Видалено ${indices.length} файлів`, 'success');
+    if (selectedIndices.size === 0) {
+        showMessage('❌ Не вибрано жодного файлу для видалення', 'error');
+        return;
     }
+
+    const fileCount = selectedIndices.size;
+    if (!confirm(`⚠️ Видалити ${fileCount} вибраних файлів? Цю дію не можна скасувати.`)) return;
+
+    const indices = Array.from(selectedIndices).sort((a,b) => b - a);
+    for (let idx of indices) {
+        selectedFiles.splice(idx, 1);
+    }
+    selectedIndices.clear();
+
+    if (selectedFiles.length === 0) {
+        uploader.style.display = 'block';
+        filesContainer.style.display = 'none';
+        topSidebar.style.display = 'none';
+    }
+    renderFilesGrid();
+    updateMergeButtons();
+    showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
+}
 
     async function mergeSelected() {
-        if (selectedIndices.size < 2) { showMessage('Виберіть принаймні 2 PDF-файли для об\'єднання', 'error'); return; }
-        const filesToMerge = Array.from(selectedIndices).sort((a,b)=>a-b).map(i => selectedFiles[i].file);
-        await performMerge(filesToMerge, 'merged_selected.pdf', mergeSelectedBtn);
+    if (selectedIndices.size < 2) {
+        showMessage(`❌ Потрібно вибрати принаймні 2 PDF-файли для об'єднання. Вибрано: ${selectedIndices.size}`, 'error');
+        return;
     }
+
+    const fileCount = selectedIndices.size;
+    showMessage(`🔗 Об'єднання ${fileCount} вибраних файлів...`, 'info');
+
+    const filesToMerge = Array.from(selectedIndices).sort((a,b)=>a-b).map(i => selectedFiles[i].file);
+    await performMerge(filesToMerge, 'merged_selected.pdf', mergeSelectedBtn, fileCount);
+}
 
     async function mergeAll() {
-        if (selectedFiles.length < 2) { showMessage('Додайте принаймні 2 PDF-файли для об\'єднання', 'error'); return; }
-        const allFiles = selectedFiles.map(item => item.file);
-        await performMerge(allFiles, 'merged_all.pdf', mergeAllBtn);
+    if (selectedFiles.length < 2) {
+        showMessage(`❌ Додайте принаймні 2 PDF-файли для об'єднання. Зараз: ${selectedFiles.length}`, 'error');
+        return;
     }
 
-    async function performMerge(files, filename, btn) {
-        btn.disabled = true;
-        progressContainer.style.display = 'block';
-        progressBar.style.width = '0%';
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += Math.random() * 15 + 5;
-            if (progress >= 95) { progress = 95; clearInterval(interval); }
-            progressBar.style.width = `${Math.min(progress, 95)}%`;
-        }, 150);
+    const fileCount = selectedFiles.length;
+    showMessage(`🔗 Об'єднання всіх ${fileCount} файлів...`, 'info');
 
-        const formData = new FormData();
-        for (let file of files) formData.append('files', file);
-        try {
-            const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
-            clearInterval(interval);
-            if (response.ok) {
-                progressBar.style.width = '100%';
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-                showMessage('✅ Об\'єднання виконано!', 'success');
-            } else throw new Error(await response.text() || 'Помилка сервера');
-        } catch (err) { showMessage(`❌ Помилка: ${err.message}`, 'error'); }
-        finally { setTimeout(() => { progressContainer.style.display = 'none'; btn.disabled = false; }, 1000); }
-    }
+    const allFiles = selectedFiles.map(item => item.file);
+    await performMerge(allFiles, 'merged_all.pdf', mergeAllBtn, fileCount);
+}
+
+    async function performMerge(files, filename, btn, fileCount) {
+    btn.disabled = true;
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        if (progress >= 95) { progress = 95; clearInterval(interval); }
+        progressBar.style.width = `${Math.min(progress, 95)}%`;
+    }, 150);
+
+    const formData = new FormData();
+    for (let file of files) formData.append('files', file);
+    try {
+        const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
+        clearInterval(interval);
+        if (response.ok) {
+            progressBar.style.width = '100%';
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
+        } else throw new Error(await response.text() || 'Помилка сервера');
+    } catch (err) { showMessage(`❌ Помилка: ${err.message}`, 'error'); }
+    finally { setTimeout(() => { progressContainer.style.display = 'none'; btn.disabled = false; }, 1000); }
+}
 
     function initSortable() {
         if (sortable) sortable.destroy();

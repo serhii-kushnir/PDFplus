@@ -242,6 +242,12 @@ body {
     border-radius: 24px;
 }
 
+.toast-notification.toast-info {
+    border-left-color: #3b82f6;
+    background: #eff6ff;
+    color: #1e40af;
+}
+
 .file-card {
     position: relative;
     width: 30%;
