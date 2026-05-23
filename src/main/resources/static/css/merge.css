@@ -242,6 +242,81 @@ body {
     border-radius: 24px;
 }
 
+/* Модальне вікно підтвердження */
+.confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    backdrop-filter: blur(4px);
+}
+
+.confirm-dialog {
+    background: white;
+    border-radius: 24px;
+    padding: 28px 32px;
+    min-width: 320px;
+    max-width: 450px;
+    box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.confirm-dialog p {
+    font-size: 16px;
+    color: #1f2a3e;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.confirm-dialog .confirm-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #e74c3c;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.confirm-buttons button {
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 14px;
+}
+
+.confirm-buttons .btn-confirm {
+    background: #e74c3c;
+    color: white;
+}
+
+.confirm-buttons .btn-confirm:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
+
+.confirm-buttons .btn-cancel {
+    background: #f1f5f9;
+    color: #1e293b;
+    border: 1px solid #cbd5e1;
+}
+
+.confirm-buttons .btn-cancel:hover {
+    background: #e2e8f0;
+}
+
 .toast-notification.toast-info {
     border-left-color: #3b82f6;
     background: #eff6ff;

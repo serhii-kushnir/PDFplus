@@ -143,20 +143,20 @@
     }
 
     async function addFiles(newFiles) {
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <div class="loader"></div>
-                <div class="progress-text">
-                    <p id="loadingStatus">Підготовка файлів...</p>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="loadingProgressBar"></div>
-                    </div>
-                    <p id="loadingCounter">0 / ${newFiles.length} файлів</p>
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <div class="loader"></div>
+            <div class="progress-text">
+                <p id="loadingStatus">Підготовка файлів...</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="loadingProgressBar"></div>
                 </div>
+                <p id="loadingCounter">0 / ${newFiles.length} файлів</p>
             </div>
-        `;
+        </div>
+    `;
         document.body.appendChild(loadingOverlay);
 
         const loadingStatus = document.getElementById('loadingStatus');
@@ -216,9 +216,16 @@
 
     async function removeFile(index) {
     const fileName = selectedFiles[index]?.name || 'файл';
-    const displayName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+    const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
 
-    if (!confirm(`Видалити файл "${displayName}"?`)) return;
+    const confirmed = await showConfirm({
+        title: '🗑 Видалення файлу',
+        message: `Ви дійсно хочете видалити файл "${displayName}"?`,
+        confirmText: 'Видалити',
+        cancelText: 'Скасувати'
+    });
+
+    if (!confirmed) return;
 
     selectedFiles.splice(index, 1);
     const newSelected = new Set();
@@ -238,6 +245,44 @@
     showMessage(`✅ Видалено файл: ${displayName}`, 'success');
 }
 
+    function showConfirm(options) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-dialog">
+                <div class="confirm-title">${options.title || 'Підтвердження'}</div>
+                <p>${options.message || 'Ви впевнені?'}</p>
+                <div class="confirm-buttons">
+                    <button class="btn-confirm">${options.confirmText || 'Так'}</button>
+                    <button class="btn-cancel">${options.cancelText || 'Скасувати'}</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const confirmBtn = overlay.querySelector('.btn-confirm');
+        const cancelBtn = overlay.querySelector('.btn-cancel');
+
+        const cleanup = () => overlay.remove();
+
+        confirmBtn.onclick = () => {
+            cleanup();
+            resolve(true);
+        };
+        cancelBtn.onclick = () => {
+            cleanup();
+            resolve(false);
+        };
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                cleanup();
+                resolve(false);
+            }
+        };
+    });
+}
+
     async function rotateFileAtIndex(index) {
     const item = selectedFiles[index];
     if (!item) return;
@@ -255,24 +300,64 @@
 }
 
     async function rotateSelected() {
-        if (selectedIndices.size === 0) { showMessage('Не вибрано жодного файлу', 'error'); return; }
-        rotateSelectedBtn.disabled = true;
-        const indices = Array.from(selectedIndices).sort((a,b)=>a-b);
-        let successCount = 0;
-        for (let idx of indices) {
-            try {
-                const rotatedFile = await rotateFile(selectedFiles[idx].file, 90);
-                const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
-                selectedFiles[idx] = { ...selectedFiles[idx], file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
-                successCount++;
-            } catch (err) {
-                showMessage(`Помилка повороту файлу "${selectedFiles[idx].name}": ${err.message}`, 'error');
-            }
-        }
-        renderFilesGrid();
-        rotateSelectedBtn.disabled = false;
-        if (successCount > 0) showMessage(`Повернуто ${successCount} файлів`, 'success');
+    if (selectedIndices.size === 0) {
+        showMessage('❌ Не вибрано жодного файлу для повороту', 'error');
+        return;
     }
+
+    const fileCount = selectedIndices.size;
+
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <div class="loader"></div>
+            <div class="progress-text">
+                <p id="rotateStatus">Поворот файлів...</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="rotateProgressBar"></div>
+                </div>
+                <p id="rotateCounter">0 / ${fileCount} файлів</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingOverlay);
+
+    const rotateStatus = document.getElementById('rotateStatus');
+    const rotateCounter = document.getElementById('rotateCounter');
+    const rotateProgressBar = document.getElementById('rotateProgressBar');
+
+    rotateSelectedBtn.disabled = true;
+    const indices = Array.from(selectedIndices).sort((a,b)=>a-b);
+    let successCount = 0;
+    let processed = 0;
+
+    for (let idx of indices) {
+        processed++;
+        const percent = (processed / fileCount) * 100;
+        rotateProgressBar.style.width = `${percent}%`;
+        rotateCounter.innerText = `Оброблено ${processed} з ${fileCount} файлів`;
+        const fileName = selectedFiles[idx].name;
+        rotateStatus.innerText = `Поворот: ${fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName}`;
+
+        try {
+            const rotatedFile = await rotateFile(selectedFiles[idx].file, 90);
+            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
+            selectedFiles[idx] = { ...selectedFiles[idx], file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
+            successCount++;
+        } catch (err) {
+            showMessage(`❌ Помилка повороту файлу "${selectedFiles[idx].name}": ${err.message}`, 'error');
+        }
+    }
+
+    loadingOverlay.remove();
+    renderFilesGrid();
+    rotateSelectedBtn.disabled = false;
+
+    if (successCount > 0) {
+        showMessage(`✅ Повернуто ${successCount} з ${fileCount} файлів`, 'success');
+    }
+}
 
     function toggleFileSelection(index, event) {
     if (event && (event.target.closest('.file__btn') || event.target.closest('.drag-handle'))) return;
@@ -327,13 +412,42 @@
     }
 
     const fileCount = selectedIndices.size;
-    if (!confirm(`⚠️ Видалити ${fileCount} вибраних файлів? Цю дію не можна скасувати.`)) return;
+
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <div class="loader"></div>
+            <div class="progress-text">
+                <p id="deleteStatus">Видалення файлів...</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="deleteProgressBar"></div>
+                </div>
+                <p id="deleteCounter">0 / ${fileCount} файлів</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingOverlay);
+
+    const deleteStatus = document.getElementById('deleteStatus');
+    const deleteCounter = document.getElementById('deleteCounter');
+    const deleteProgressBar = document.getElementById('deleteProgressBar');
 
     const indices = Array.from(selectedIndices).sort((a,b) => b - a);
+    let processed = 0;
+
     for (let idx of indices) {
+        processed++;
+        const percent = (processed / fileCount) * 100;
+        deleteProgressBar.style.width = `${percent}%`;
+        deleteCounter.innerText = `Видалено ${processed} з ${fileCount} файлів`;
+        const fileName = selectedFiles[idx]?.name || 'файл';
+        deleteStatus.innerText = `Видалення: ${fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName}`;
         selectedFiles.splice(idx, 1);
     }
+
     selectedIndices.clear();
+    loadingOverlay.remove();
 
     if (selectedFiles.length === 0) {
         uploader.style.display = 'block';
@@ -352,10 +466,19 @@
     }
 
     const fileCount = selectedIndices.size;
-    showMessage(`🔗 Об'єднання ${fileCount} вибраних файлів...`, 'info');
-
     const filesToMerge = Array.from(selectedIndices).sort((a,b)=>a-b).map(i => selectedFiles[i].file);
     await performMerge(filesToMerge, 'merged_selected.pdf', mergeSelectedBtn, fileCount);
+}
+
+async function mergeAll() {
+    if (selectedFiles.length < 2) {
+        showMessage(`❌ Додайте принаймні 2 PDF-файли для об'єднання. Зараз: ${selectedFiles.length}`, 'error');
+        return;
+    }
+
+    const fileCount = selectedFiles.length;
+    const allFiles = selectedFiles.map(item => item.file);
+    await performMerge(allFiles, 'merged_all.pdf', mergeAllBtn, fileCount);
 }
 
     async function mergeAll() {
@@ -373,22 +496,61 @@
 
     async function performMerge(files, filename, btn, fileCount) {
     btn.disabled = true;
+
+    // Показуємо спінер з хвильовим ефектом
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <div class="loader"></div>
+            <div class="progress-text">
+                <p id="mergeStatus">Об'єднання файлів...</p>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="mergeProgressBar"></div>
+                </div>
+                <p id="mergeCounter">0 / ${fileCount} файлів</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingOverlay);
+
+    const mergeStatus = document.getElementById('mergeStatus');
+    const mergeCounter = document.getElementById('mergeCounter');
+    const mergeProgressBar = document.getElementById('mergeProgressBar');
+
     progressContainer.style.display = 'block';
     progressBar.style.width = '0%';
-    let progress = 0;
-    const interval = setInterval(() => {
-        progress += Math.random() * 15 + 5;
-        if (progress >= 95) { progress = 95; clearInterval(interval); }
-        progressBar.style.width = `${Math.min(progress, 95)}%`;
-    }, 150);
+
+    let processed = 0;
+    const totalFiles = fileCount;
+
+    // Оновлюємо прогрес-бар при обробці кожного файлу
+    const updateProgress = () => {
+        processed++;
+        const percent = (processed / totalFiles) * 100;
+        if (mergeProgressBar) mergeProgressBar.style.width = `${percent}%`;
+        if (mergeCounter) mergeCounter.innerText = `Файлів оброблено: ${processed} з ${totalFiles}`;
+        // Оновлюємо основний прогрес-бар
+        progressBar.style.width = `${percent}%`;
+        if (mergeStatus) mergeStatus.innerText = `Об'єднання... ${processed} / ${totalFiles}`;
+    };
 
     const formData = new FormData();
-    for (let file of files) formData.append('files', file);
+    for (let file of files) {
+        formData.append('files', file);
+        updateProgress(); // Оновлюємо прогрес для кожного файлу
+        // Невелика затримка для візуального ефекту
+        await new Promise(r => setTimeout(r, 50));
+    }
+
     try {
         const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
-        clearInterval(interval);
+
         if (response.ok) {
+            mergeProgressBar.style.width = '100%';
             progressBar.style.width = '100%';
+            mergeStatus.innerText = 'Завантаження результату...';
+
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -396,10 +558,19 @@
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
+
+            loadingOverlay.remove();
             showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
         } else throw new Error(await response.text() || 'Помилка сервера');
-    } catch (err) { showMessage(`❌ Помилка: ${err.message}`, 'error'); }
-    finally { setTimeout(() => { progressContainer.style.display = 'none'; btn.disabled = false; }, 1000); }
+    } catch (err) {
+        loadingOverlay.remove();
+        showMessage(`❌ Помилка: ${err.message}`, 'error');
+    } finally {
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            btn.disabled = false;
+        }, 1000);
+    }
 }
 
     function initSortable() {
