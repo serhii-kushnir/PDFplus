@@ -58,6 +58,10 @@ body {
     min-height: 80px;
     flex: none;
     border-left: none;
+    /* Додати для фіксації */
+        position: sticky;
+        top: 0px;      /* висота вашого хедера + невеликий відступ */
+        z-index: 100;
 }
 
 .sidebar-controls {
