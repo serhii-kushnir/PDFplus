@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f5f7fb;
+    background: linear-gradient(145deg, #f0f4fa 0%, #e9eef5 100%);
     color: #1f2a3e;
     line-height: 1.5;
 }
@@ -579,35 +579,6 @@ body {
     }
 }
 
-/* ===== ФУТЕР (стиль як у nav-container) ===== */
-.pdf-footer {
-    background: white;
-    border-radius: 16px;
-    padding: 16px 24px;
-    margin-top: 32px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    text-align: center;
-}
-
-.pdf-footer p {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #5b6e8c;
-    font-weight: 500;
-}
-
-/* Адаптивність для футера */
-@media (max-width: 768px) {
-    .pdf-footer {
-        padding: 12px 16px;
-        margin-top: 24px;
-    }
-    .pdf-footer p {
-        font-size: 0.75rem;
-    }
-}
-
 /* ===== АДАПТИВНІСТЬ ===== */
 @media (max-width: 860px) {
     .tool__sidebar.top-sidebar {
@@ -635,6 +606,29 @@ body {
         white-space: normal;
         text-align: center;
     }
+}
+
+.sidebar-controls .btn-secondary,
+.sidebar-controls .btn-danger,
+.sidebar-controls .btn-add-more,
+.sidebar-controls .btn.btn--process {
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-controls .btn-secondary:hover,
+.sidebar-controls .btn-danger:hover,
+.sidebar-controls .btn-add-more:hover,
+.sidebar-controls .btn.btn--process:hover {
+    transform: translateY(-1px);
+}
+
+/* Для кнопки об'єднання (червона) – окремий ховер */
+.sidebar-controls .btn.btn--process:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
 }
 
 @media (max-width: 768px) {

@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Plus | Організація PDF</title>
+    <link rel="icon" type="image/png" th:href="@{/img/ico.png}">
     <link rel="stylesheet" th:href="@{/css/nav-menu.css}">
+    <link rel="stylesheet" th:href="@{/css/footer.css}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -98,8 +100,8 @@
     <div th:replace="~{fragments/nav-menu :: nav-menu}"></div>
     
     <div class="header">
-        <div class="logo">📄 PDF Plus</div>
-        <div class="tagline">Потужні інструменти для роботи з PDF: об'єднуйте, розділяйте, сортуйте, скануйте</div>
+        <div class="logo">📄 PDF Plus - Онлайн - інструменти для любителів PDF</div>
+        <div class="tagline">Полностью бесплатные онлайн-инструменты для объединения, разделения, сжатия PDF-файлов, преобразования документов Office в PDF-файлы, преобразования PDF-файлов в JPG и JPG в PDF. Без необходимости установки.</div>
     </div>
 
     <!-- Категорія: Организовать PDF -->
@@ -126,14 +128,13 @@
                 <p>Сортируйте страницы вашего PDF-файла, как вам угодно. Удаляйте или добавляйте PDF-страницы в документ по своему усмотрению.</p>
                 <span class="badge">Новинка</span>
             </a>
-            <!-- 4. Сканировать в PDF -->
-            <a href="/scan" class="tool-card" id="scanLink">
-                <div class="tool-icon">📱</div>
-                <h3>Сканировать в PDF</h3>
-                <p>Создавайте сканы документов с помощью мобильного устройства и сразу же отправляйте их в браузер.</p>
-                <span class="badge">Мобильный</span>
-            </a>
-            <!-- 5. История файлов -->
+        </div>
+    </div>
+
+    <div class="category">
+        <div class="category-title">📂 Інше PDF</div>
+        <div class="tools-grid">
+            <!-- 4. История файлов -->
             <a href="/history" class="tool-card">
                 <div class="tool-icon">📋</div>
                 <h3>История файлов</h3>
@@ -146,16 +147,12 @@
     <div class="info-box">
         <h3>ℹ️ Про сервіс PDF Plus</h3>
         <div class="info-grid">
-            <span>🕒 <strong>Таймліф:</strong> Файли автоматично видаляються через 30–60 хвилин</span>
             <span>🔒 <strong>Безпека:</strong> Ваші файли ніхто не переглядає</span>
             <span>⚡ <strong>Швидкість:</strong> Обробка миттєва</span>
-            <span>📱 <strong>Мобільний доступ:</strong> Скануйте з телефону</span>
         </div>
     </div>
 
-    <footer>
-        © 2026 PDF Plus | by Sehii Kushnir
-    </footer>
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
 
 <!-- Невеликий скрипт для функції сканування (за бажанням) -->

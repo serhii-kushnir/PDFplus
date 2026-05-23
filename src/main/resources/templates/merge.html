@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Об'єднати PDF файли онлайн | PDFPlus</title>
+    <link rel="icon" type="image/png" th:href="@{/img/ico.png}">
     <link rel="stylesheet" th:href="@{/css/nav-menu.css}">
     <link rel="stylesheet" th:href="@{/css/merge.css}">
+    <link rel="stylesheet" th:href="@{/css/footer.css}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -16,7 +18,7 @@
     <div th:replace="~{fragments/nav-menu :: nav-menu}"></div>
 
     <div class="tool__header">
-        <h1 class="tool__header__title">Об'єднати PDF</h1>
+        <h1 class="tool__header__title">🔗 Об'єднати PDF</h1>
         <h2 class="tool__header__subtitle">Об'єднуйте PDF файли та впорядковуйте їх легко і швидко в будь-якому порядку.</h2>
     </div>
 
@@ -59,9 +61,7 @@
         </div>
     </div>
     <!-- Футер -->
-    <footer class="pdf-footer">
-        <p>© 2026 PDF Plus ® - Ваш PDF Редактор | by Serhii Kushnir</p>
-    </footer>
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
 
 <script>

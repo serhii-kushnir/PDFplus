@@ -40,10 +40,13 @@
     border-radius: 10px;
     transition: all 0.3s;
     font-size: 0.95rem;
+    transition: all 0.3s ease;
+    display: inline-block;
 }
 .nav-links a:hover {
-    background: linear-gradient(135deg, #e6f0ff, #f0f4fa);
-    color: #1e3c72;
+    transform: translateY(-2px);
+    background: linear-gradient(132deg, #2563eb, #2a5298);
+    color: white;
 }
 .nav-links a.active {
     background: linear-gradient(135deg, #1e3c72, #2a5298);

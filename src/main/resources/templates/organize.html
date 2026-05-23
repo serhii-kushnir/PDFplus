@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Организовать PDF – PDF Plus</title>
+    <link rel="icon" type="image/png" th:href="@{/img/ico.png}">
     <link rel="stylesheet" th:href="@{/css/nav-menu.css}">
+    <link rel="stylesheet" th:href="@{/css/footer.css}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -207,6 +209,8 @@
             <i>ℹ️</i> Перетаскивайте страницы для изменения порядка. Нажмите на крестик для удаления. Кнопка "+" добавляет пустую страницу в конец.
         </div>
     </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
 
 <script>

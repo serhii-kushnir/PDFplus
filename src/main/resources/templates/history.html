@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Історія файлів | PDF Plus</title>
+    <link rel="icon" type="image/png" th:href="@{/img/ico.png}">
+    <link rel="stylesheet" th:href="@{/css/footer.css}">
     <link rel="stylesheet" th:href="@{/css/nav-menu.css}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -134,6 +136,8 @@
     <div id="filesContainer">
         <div class="loading">Завантаження...</div>
     </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
 
 <script>
