@@ -140,32 +140,57 @@
     }
 
     async function addFiles(newFiles) {
-        let added = 0;
-        for (const file of newFiles) {
-            if (file.type !== 'application/pdf') { showMessage(`Файл "${file.name}" не є PDF`, 'error'); continue; }
-            if (selectedFiles.some(f => f.file.name === file.name && f.file.size === file.size)) { showMessage(`Файл "${file.name}" вже доданий`, 'error'); continue; }
-            try {
-                const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
-                selectedFiles.push({
-                    file,
-                    thumbnailUrl,
-                    name: file.name,
-                    size: fileSize,
-                    pageCount: pageCount
-                });
-                added++;
-            } catch (err) { showMessage(`Помилка обробки ${file.name}: ${err.message}`, 'error'); }
+    // Показуємо спінер
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Обробка PDF файлів...</p>
+        </div>
+    `;
+    document.body.appendChild(loadingOverlay);
+
+    let added = 0;
+    for (const file of newFiles) {
+        if (file.type !== 'application/pdf') {
+            showMessage(`Файл "${file.name}" не є PDF`, 'error');
+            continue;
         }
-        if (added > 0) {
-            if (selectedFiles.length > 0) {
-                uploader.style.display = 'none';
-                filesContainer.style.display = 'flex';
-                topSidebar.style.display = 'flex';
-            }
-            renderFilesGrid();
-            updateMergeButtons();
+        if (selectedFiles.some(f => f.file.name === file.name && f.file.size === file.size)) {
+            showMessage(`Файл "${file.name}" вже доданий`, 'error');
+            continue;
+        }
+        try {
+            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
+            selectedFiles.push({
+                file,
+                thumbnailUrl,
+                name: file.name,
+                size: fileSize,
+                pageCount: pageCount
+            });
+            added++;
+        } catch (err) {
+            showMessage(`Помилка обробки ${file.name}: ${err.message}`, 'error');
         }
     }
+
+    // Видаляємо спінер
+    loadingOverlay.remove();
+
+    if (added > 0) {
+        if (selectedFiles.length > 0) {
+            uploader.style.display = 'none';
+            filesContainer.style.display = 'flex';
+            topSidebar.style.display = 'flex';
+        }
+        renderFilesGrid();
+        updateMergeButtons();
+        if (added === 1) showMessage(`Додано ${added} файл`, 'success');
+        else if (added > 1) showMessage(`Додано ${added} файли`, 'success');
+    }
+}
 
     async function removeFile(index) {
         selectedFiles.splice(index, 1);
