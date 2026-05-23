@@ -555,8 +555,10 @@ body {
     align-items: center;
     gap: 16px;
     box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.2);
+    min-width: 320px;
 }
 
+/* Анімація спінера (крутилка) */
 .loading-spinner .spinner {
     width: 48px;
     height: 48px;
@@ -566,31 +568,25 @@ body {
     animation: spin 0.8s linear infinite;
 }
 
-.loading-spinner p {
-    margin: 0;
-    font-size: 14px;
-    color: #1f2a3e;
-    font-weight: 500;
-}
-
 @keyframes spin {
     to {
         transform: rotate(360deg);
     }
 }
 
+/* Хвильовий ефект (ваш оригінальний) */
 .loader {
     width: 150px;
     height: 150px;
     background-color: #ff3d00;
     border-radius: 50%;
     position: relative;
-    box-shadow: 0 0 30px 4px rgba(0, 0, 0, 0.5) inset,
-      0 5px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 30px 4px rgba(0, 0, 0, 0.5) inset, 0 5px 12px rgba(0, 0, 0, 0.15);
     overflow: hidden;
-  }
-  .loader:before,
-  .loader:after {
+}
+
+.loader:before,
+.loader:after {
     content: "";
     position: absolute;
     width: 100%;
@@ -599,20 +595,64 @@ body {
     top: -40%;
     background-color: #fff;
     animation: wave 5s linear infinite;
-  }
-  .loader:before {
+}
+
+.loader:before {
     border-radius: 30%;
     background: rgba(255, 255, 255, 0.4);
     animation: wave 5s linear infinite;
-  }
-  @keyframes wave {
+}
+
+@keyframes wave {
     0% {
-      transform: rotate(0);
+        transform: rotate(0);
     }
     100% {
-      transform: rotate(360deg);
+        transform: rotate(360deg);
     }
-  }
+}
+
+/* Текст статусу та прогрес-бар */
+.loading-spinner .progress-text {
+    width: 100%;
+    text-align: center;
+}
+
+.loading-spinner #loadingStatus {
+    font-size: 13px;
+    color: #5b6e8c;
+    margin-bottom: 12px;
+}
+
+.loading-spinner .progress-bar-container {
+    width: 500px;
+    height: 6px;
+    background-color: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.loading-spinner .progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(95deg, #e74c3c, #c0392b);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.loading-spinner #loadingCounter {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 8px;
+}
+
+.loading-spinner p {
+    margin: 0;
+    font-size: 14px;
+    color: #1f2a3e;
+    font-weight: 500;
+}
 
 /* ===== АДАПТИВНІСТЬ ===== */
 @media (max-width: 860px) {
