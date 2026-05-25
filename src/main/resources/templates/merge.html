@@ -42,7 +42,14 @@
             </div>
             <button id="addMoreFilesBtn" class="btn-add-more">➕ Додати ще файли</button>
         </div>
+
         <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+
+    <div id="statsInfo" class="stats-info" style="display: none;">
+        <span id="totalFiles">0</span> файлів,
+        <span id="totalPages">0</span> сторінок,
+        <span id="totalSize">0</span> MB
     </div>
 
     <!-- Робоча область -->
@@ -61,6 +68,7 @@
             <div class="empty-state">Файли не вибрано</div>
         </div>
     </div>
+
     <!-- Футер -->
     <div th:replace="~{fragments/footer :: footer}"></div>
 </div>

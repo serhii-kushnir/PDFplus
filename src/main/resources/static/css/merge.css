@@ -46,7 +46,6 @@ body {
     background: #ffffff;
     border-radius: 32px;
     padding: 16px 28px;
-    margin-bottom: 24px;
     width: 100%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border: 1px solid #eef2ff;
@@ -551,6 +550,18 @@ body {
     padding: 40px;
     color: #94a3b8;
     width: 100%;
+}
+
+.stats-info {
+    background: #eef2ff;
+    border-radius: 20px;
+    padding: 8px 16px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: #1e40af;
+    text-align: right;
+    display: inline-block;
+    width: auto;
 }
 
 /* Тости */
