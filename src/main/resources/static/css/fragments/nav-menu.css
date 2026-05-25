@@ -18,7 +18,7 @@
     background: linear-gradient(135deg, #1e3c72, #2a5298);
     background-clip: text;
     -webkit-background-clip: text;
-    color: transparent;
+    color: #e74c3c;
     text-decoration: none;
     display: flex;
     align-items: center;
@@ -45,11 +45,11 @@
 }
 .nav-links a:hover {
     transform: translateY(-2px);
-    background: linear-gradient(132deg, #2563eb, #2a5298);
+    background: linear-gradient(132deg, #eb2525, #982a2a);
     color: white;
 }
 .nav-links a.active {
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    background: linear-gradient(135deg, #e74c3c, #982a2a);
     color: white;
 }
 @media (max-width: 640px) {

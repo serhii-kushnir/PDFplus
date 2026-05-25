@@ -27,6 +27,14 @@
     <div class="tool__sidebar top-sidebar">
         <div class="sidebar-controls">
             <div class="btn-group">
+                <button id="hotkeyInfoBtn" class="hotkey-info-btn" title="Гарячі клавіші">
+                    <i class="fas fa-keyboard"></i>
+                </button>
+            </div>
+            <span class="separator"></span>
+            <button id="addMoreFilesBtn" class="btn-add-more">➕ Додати ще файли</button>
+            <span class="separator"></span>
+            <div class="btn-group">
                 <button id="selectAllBtn" class="btn-secondary">✅ Вибрати все</button>
                 <button id="clearSelectionBtn" class="btn-secondary">✖️ Очистити</button>
             </div>
@@ -40,16 +48,17 @@
                 <button id="mergeSelectedBtn" class="btn btn--process">🔗 Об'єднати вибрані</button>
                 <button id="mergeAllBtn" class="btn btn--process">🔗 Об'єднати все</button>
             </div>
-            <button id="addMoreFilesBtn" class="btn-add-more">➕ Додати ще файли</button>
         </div>
 
         <div class="progress-container" id="progressContainer"><div class="progress-bar" id="progressBar"></div></div>
     </div>
 
-    <div id="statsInfo" class="stats-info" style="display: none;">
-        <span id="totalFiles">0</span> файлів,
-        <span id="totalPages">0</span> сторінок,
-        <span id="totalSize">0</span> MB
+    <div class="stats-container">
+        <div id="statsInfo" class="stats-info" style="display: none;">
+            <span id="totalFiles">0</span> файлів,
+            <span id="totalPages">0</span> сторінок,
+            <span id="totalSize">0</span> MB
+        </div>
     </div>
 
     <!-- Робоча область -->
