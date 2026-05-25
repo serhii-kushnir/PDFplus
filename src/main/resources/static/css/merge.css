@@ -334,6 +334,8 @@ body {
     border: 2px solid transparent;
     display: flex;
     flex-direction: column;
+    isolation: isolate;
+    z-index: 0;
 }
 
 .file-card:active {
@@ -502,8 +504,8 @@ body {
     font-size: 12px;
     font-weight: 400;
     white-space: nowrap;
-    z-index: 10;
-    pointer-events: none;
+    z-index: 999999 !important;
+    pointer-events: absolute;
 }
 
 .file-tooltip::after {
