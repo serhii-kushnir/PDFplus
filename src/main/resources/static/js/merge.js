@@ -20,57 +20,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressBar = document.getElementById('progressBar');
     const topSidebar = document.querySelector('.tool__sidebar.top-sidebar');
 
-    // ========== ГАРЯЧІ КЛАВІШІ ==========
+    // ========== ГАРЯЧІ КЛАВІШІ (без змін) ==========
     document.addEventListener('keydown', (e) => {
-        // Спочатку перевіряємо, чи відкрите модальне вікно підтвердження
         const activeConfirm = document.querySelector('.confirm-overlay');
         if (activeConfirm) {
             if (e.code === 'Escape') {
                 e.preventDefault();
-                // Закриваємо модальне вікно (імітуємо клік на "Скасувати")
                 const cancelBtn = activeConfirm.querySelector('.btn-cancel');
                 if (cancelBtn) cancelBtn.click();
                 else activeConfirm.remove();
             }
-            return; // Ігноруємо інші гарячі клавіші, поки відкрите підтвердження
+            return;
         }
-
-        // Ігноруємо, якщо фокус у полі вводу або інших елементах
         if (e.target.matches('input, textarea, .loading-overlay')) return;
-
         const code = e.code;
-
-        // Ctrl + A – вибрати всі
-        if (e.ctrlKey && code === 'KeyA') {
-            e.preventDefault();
-            if (selectedFiles.length > 0) selectAll();
-        }
-        // Delete – видалити вибрані
-        else if (code === 'Delete') {
-            e.preventDefault();
-            if (selectedIndices.size > 0) deleteSelected();
-        }
-        // Ctrl + R – обернути вибрані
-        else if (e.ctrlKey && code === 'KeyR') {
-            e.preventDefault();
-            if (selectedIndices.size > 0) rotateSelected();
-        }
-        // Ctrl + M – об'єднати вибрані
-        else if (e.ctrlKey && code === 'KeyM') {
-            e.preventDefault();
-            if (selectedIndices.size >= 2) mergeSelected();
-        }
-        // Ctrl + D – об'єднати всі файли (змінено)
-        else if (e.ctrlKey && code === 'KeyD') {
-            e.preventDefault();
-            if (selectedFiles.length >= 2) mergeAll();
-        }
-        // Escape – очистити вибір (якщо немає модального вікна)
-        else if (code === 'Escape') {
-            e.preventDefault();
-            if (selectedIndices.size > 0) clearSelection();
-        }
-        // Ctrl + E – додати ще файли
+        if (e.ctrlKey && code === 'KeyA') { e.preventDefault(); if (selectedFiles.length > 0) selectAll(); }
+        else if (code === 'Delete') { e.preventDefault(); if (selectedIndices.size > 0) deleteSelected(); }
+        else if (e.ctrlKey && code === 'KeyR') { e.preventDefault(); if (selectedIndices.size > 0) rotateSelected(); }
+        else if (e.ctrlKey && code === 'KeyM') { e.preventDefault(); if (selectedIndices.size >= 2) mergeSelected(); }
+        else if (e.ctrlKey && code === 'KeyD') { e.preventDefault(); if (selectedFiles.length >= 2) mergeAll(); }
+        else if (code === 'Escape') { e.preventDefault(); if (selectedIndices.size > 0) clearSelection(); }
         else if (e.ctrlKey && code === 'KeyE') {
             e.preventDefault();
             if (selectedFiles.length > 0 && addMoreBtn && addMoreBtn.style.display !== 'none') {
@@ -80,53 +49,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
+    // ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ (без змін) ==========
     const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
     if (hotkeyBtn) {
         hotkeyBtn.addEventListener('click', () => {
-            // Видаляємо старе модальне вікно, якщо є
             const existingModal = document.querySelector('.hotkey-modal');
             if (existingModal) existingModal.remove();
-
             const modal = document.createElement('div');
             modal.className = 'hotkey-modal';
             modal.innerHTML = `
                 <div class="hotkey-modal-content">
                     <h3><i class="fas fa-keyboard"></i> Гарячі клавіші</h3>
                     <div class="hotkey-list">
-                        <div class="hotkey-key">Ctrl + A</div>
-                        <div class="hotkey-desc">✅ Вибрати всі файли</div>
-
-                        <div class="hotkey-key">Delete</div>
-                        <div class="hotkey-desc">🗑 Видалити вибрані файли</div>
-
-                        <div class="hotkey-key">Ctrl + R</div>
-                        <div class="hotkey-desc">🔄 Повернути вибрані файли</div>
-
-                        <div class="hotkey-key">Ctrl + M</div>
-                        <div class="hotkey-desc">🔗 Об'єднати вибрані файли</div>
-
-                        <div class="hotkey-key">Ctrl + D</div>
-                        <div class="hotkey-desc">🔗 Об'єднати всі файли</div>
-
-                        <div class="hotkey-key">Escape</div>
-                        <div class="hotkey-desc">✖️ Очистити вибір / Закрити діалог</div>
-
-                        <div class="hotkey-key">Ctrl + E</div>
-                        <div class="hotkey-desc">➕ Додати ще файли</div>
+                        <div class="hotkey-key">Ctrl + A</div><div class="hotkey-desc">✅ Вибрати всі файли</div>
+                        <div class="hotkey-key">Delete</div><div class="hotkey-desc">🗑 Видалити вибрані файли</div>
+                        <div class="hotkey-key">Ctrl + R</div><div class="hotkey-desc">🔄 Повернути вибрані файли</div>
+                        <div class="hotkey-key">Ctrl + M</div><div class="hotkey-desc">🔗 Об'єднати вибрані файли</div>
+                        <div class="hotkey-key">Ctrl + D</div><div class="hotkey-desc">🔗 Об'єднати всі файли</div>
+                        <div class="hotkey-key">Escape</div><div class="hotkey-desc">✖️ Очистити вибір / Закрити діалог</div>
+                        <div class="hotkey-key">Ctrl + E</div><div class="hotkey-desc">➕ Додати ще файли</div>
                     </div>
                     <button class="close-hotkey-btn">Зрозуміло</button>
                 </div>
             `;
             document.body.appendChild(modal);
-
             const closeBtn = modal.querySelector('.close-hotkey-btn');
             closeBtn.onclick = () => modal.remove();
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         });
     }
 
-    // ========== Функція оновлення статистики ==========
+    // ========== СТАТИСТИКА ==========
     function updateStats() {
         const statsDiv = document.getElementById('statsInfo');
         if (!statsDiv) return;
@@ -134,8 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statsDiv.style.display = 'none';
             return;
         }
-        let totalPages = 0;
-        let totalSizeMB = 0;
+        let totalPages = 0, totalSizeMB = 0;
         for (let file of selectedFiles) {
             totalPages += file.pageCount;
             totalSizeMB += file.size / (1024 * 1024);
@@ -146,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
         statsDiv.style.display = 'block';
     }
 
-    // ========== Допоміжні функції ==========
+    // ========== ДОПОМІЖНІ ФУНКЦІЇ ==========
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -155,18 +107,18 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
-    function showMessage(msg, type) {
+    function showMessage(msg, type, duration = 4000) {
         const existingToasts = document.querySelectorAll('.toast-notification');
         existingToasts.forEach(toast => toast.remove());
         const toast = document.createElement('div');
         toast.className = `toast-notification toast-${type}`;
-        const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-check-circle"></i>';
+        const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : (type === 'info' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-check-circle"></i>');
         toast.innerHTML = `${icon}<span>${msg}</span>`;
         document.body.appendChild(toast);
         setTimeout(() => {
             toast.classList.add('fade-out');
             setTimeout(() => toast.remove(), 400);
-        }, 4000);
+        }, duration);
     }
 
     async function generateThumbnail(file) {
@@ -203,7 +155,67 @@ document.addEventListener('DOMContentLoaded', function() {
         return new File([blob], file.name, { type: 'application/pdf' });
     }
 
-    // ========== Основні функції роботи з файлами ==========
+    function updateCardSelectionState(card, isSelected) {
+        if (isSelected) card.classList.add('selected');
+        else card.classList.remove('selected');
+        const checkbox = card.querySelector('.file-card-checkbox input');
+        if (checkbox) checkbox.checked = isSelected;
+    }
+
+    // ОНОВЛЕННЯ ОКРЕМОЇ КАРТКИ БЕЗ ПЕРЕРИСОВКИ ВСІЄЇ СІТКИ
+    function updateSingleCard(index) {
+        const card = document.querySelector(`.file-card[data-index='${index}']`);
+        if (!card) return;
+        const data = selectedFiles[index];
+        if (!data) return;
+
+        // Оновлюємо мініатюру
+        const canvas = card.querySelector('canvas');
+        const img = new Image();
+        img.src = data.thumbnailUrl;
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        // Оновлюємо назву
+        const nameSpan = card.querySelector('.file__info__name');
+        let displayName = data.name;
+        if (displayName.length > 25) displayName = displayName.slice(0, 22) + '...';
+        nameSpan.innerText = displayName;
+        // Оновлюємо тултіп
+        const tooltip = card.querySelector('.file-tooltip');
+        const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
+        tooltip.innerText = `${sizeMB} MB • ${data.pageCount} стор.`;
+    }
+
+    // ========== СОРТУВАННЯ ==========
+    function initSortable() {
+        if (sortable) sortable.destroy();
+        if (!filesContainer) return;
+        sortable = new Sortable(filesContainer, {
+            animation: 200,
+            onEnd: function() {
+                const items = filesContainer.querySelectorAll('.file-card');
+                const newOrder = [];
+                const oldSelected = new Set(selectedIndices);
+                selectedIndices.clear();
+                items.forEach((item, newIdx) => {
+                    const oldIdx = parseInt(item.getAttribute('data-index'), 10);
+                    newOrder.push(selectedFiles[oldIdx]);
+                    if (oldSelected.has(oldIdx)) selectedIndices.add(newIdx);
+                });
+                selectedFiles = newOrder;
+                renderFilesGrid(); // сортування потребує повної перерисовки
+                updateMergeButtons();
+                showMessage('📌 Порядок файлів змінено', 'success', 3000);
+            }
+        });
+    }
+
+    // ========== ОСНОВНІ ФУНКЦІЇ ==========
     async function addFiles(newFiles) {
         const loadingOverlay = document.createElement('div');
         loadingOverlay.className = 'loading-overlay';
@@ -221,20 +233,17 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         document.body.appendChild(loadingOverlay);
 
+        let added = 0, processed = 0;
+        const totalFiles = newFiles.length;
         const loadingStatus = document.getElementById('loadingStatus');
         const loadingCounter = document.getElementById('loadingCounter');
         const loadingProgressBar = document.getElementById('loadingProgressBar');
-
-        let added = 0;
-        let processed = 0;
-        const totalFiles = newFiles.length;
 
         for (const file of newFiles) {
             processed++;
             const percent = (processed / totalFiles) * 100;
             loadingProgressBar.style.width = `${percent}%`;
             loadingCounter.innerText = `Завантажено ${processed} з ${totalFiles} файлів`;
-
             if (file.type !== 'application/pdf') {
                 showMessage(`Файл "${file.name}" не є PDF`, 'error');
                 continue;
@@ -243,26 +252,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage(`Файл "${file.name}" вже доданий`, 'error');
                 continue;
             }
-
             loadingStatus.innerText = `Обробка: ${file.name}`;
-
             try {
                 const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
-                selectedFiles.push({
-                    file,
-                    thumbnailUrl,
-                    name: file.name,
-                    size: fileSize,
-                    pageCount: pageCount
-                });
+                selectedFiles.push({ file, thumbnailUrl, name: file.name, size: fileSize, pageCount });
                 added++;
             } catch (err) {
                 showMessage(`Помилка обробки ${file.name}: ${err.message}`, 'error');
             }
         }
-
         loadingOverlay.remove();
-
         if (added > 0) {
             if (selectedFiles.length > 0) {
                 uploader.style.display = 'none';
@@ -272,22 +271,19 @@ document.addEventListener('DOMContentLoaded', function() {
             renderFilesGrid();
             updateMergeButtons();
             updateStats();
-            if (added === 1) showMessage(`Додано ${added} файл`, 'success');
-            else if (added > 1) showMessage(`Додано ${added} файли`, 'success');
+            showMessage(added === 1 ? `Додано ${added} файл` : `Додано ${added} файли`, 'success');
         }
     }
 
     async function removeFile(index) {
         const fileName = selectedFiles[index]?.name || 'файл';
         const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
-
         const confirmed = await showConfirm({
             title: '🗑 Видалення файлу',
             message: `Ви дійсно хочете видалити файл "${displayName}"?`,
             confirmText: 'Видалити',
             cancelText: 'Скасувати'
         });
-
         if (!confirmed) return;
 
         selectedFiles.splice(index, 1);
@@ -302,11 +298,62 @@ document.addEventListener('DOMContentLoaded', function() {
             uploader.style.display = 'block';
             filesContainer.style.display = 'none';
             topSidebar.style.display = 'none';
+            renderFilesGrid();
+        } else {
+            renderFilesGrid();
         }
-        renderFilesGrid();
         updateMergeButtons();
         updateStats();
         showMessage(`✅ Видалено файл: ${displayName}`, 'success');
+    }
+
+    async function deleteSelected() {
+        if (selectedIndices.size === 0) {
+            showMessage('❌ Не вибрано жодного файлу для видалення', 'error');
+            return;
+        }
+        const fileCount = selectedIndices.size;
+        const confirmed = await showConfirm({
+            title: '🗑 Видалення вибраних файлів',
+            message: `Видалити ${fileCount} вибраних файлів?`,
+            confirmText: 'Видалити',
+            cancelText: 'Скасувати'
+        });
+        if (!confirmed) return;
+
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `<div class="loading-spinner"><div class="loader"></div><div class="progress-text"><p id="deleteStatus">Видалення файлів...</p><div class="progress-bar-container"><div class="progress-bar-fill" id="deleteProgressBar"></div></div><p id="deleteCounter">0 / ${fileCount} файлів</p></div></div>`;
+        document.body.appendChild(loadingOverlay);
+        const deleteStatus = document.getElementById('deleteStatus');
+        const deleteCounter = document.getElementById('deleteCounter');
+        const deleteProgressBar = document.getElementById('deleteProgressBar');
+
+        const indices = Array.from(selectedIndices).sort((a,b) => b - a);
+        let processed = 0;
+        for (let idx of indices) {
+            processed++;
+            const percent = (processed / fileCount) * 100;
+            deleteProgressBar.style.width = `${percent}%`;
+            deleteCounter.innerText = `Видалено ${processed} з ${fileCount} файлів`;
+            const fileName = selectedFiles[idx]?.name || 'файл';
+            deleteStatus.innerText = `Видалення: ${fileName.length > 40 ? fileName.substring(0,37)+'...' : fileName}`;
+            selectedFiles.splice(idx, 1);
+        }
+        selectedIndices.clear();
+        loadingOverlay.remove();
+
+        if (selectedFiles.length === 0) {
+            uploader.style.display = 'block';
+            filesContainer.style.display = 'none';
+            topSidebar.style.display = 'none';
+            renderFilesGrid();
+        } else {
+            renderFilesGrid();
+        }
+        updateMergeButtons();
+        updateStats();
+        showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
     }
 
     function showConfirm(options) {
@@ -324,26 +371,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             document.body.appendChild(overlay);
-
             const confirmBtn = overlay.querySelector('.btn-confirm');
             const cancelBtn = overlay.querySelector('.btn-cancel');
-
             const cleanup = () => overlay.remove();
-
-            confirmBtn.onclick = () => {
-                cleanup();
-                resolve(true);
-            };
-            cancelBtn.onclick = () => {
-                cleanup();
-                resolve(false);
-            };
-            overlay.onclick = (e) => {
-                if (e.target === overlay) {
-                    cleanup();
-                    resolve(false);
-                }
-            };
+            confirmBtn.onclick = () => { cleanup(); resolve(true); };
+            cancelBtn.onclick = () => { cleanup(); resolve(false); };
+            overlay.onclick = (e) => { if (e.target === overlay) { cleanup(); resolve(false); } };
         });
     }
 
@@ -351,12 +384,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const item = selectedFiles[index];
         if (!item) return;
         const displayName = item.name.length > 40 ? item.name.substring(0, 37) + '...' : item.name;
-
         try {
             const rotatedFile = await rotateFile(item.file, 90);
-            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
-            selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
-            renderFilesGrid();
+            const newData = await generateThumbnail(rotatedFile);
+            selectedFiles[index] = { ...item, file: rotatedFile, thumbnailUrl: newData.thumbnailUrl, pageCount: newData.pageCount, size: newData.fileSize };
+            updateSingleCard(index);
             updateStats();
             showMessage(`🔄 Повернуто: ${displayName}`, 'success');
         } catch (err) {
@@ -369,7 +401,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage('❌ Не вибрано жодного файлу для повороту', 'error');
             return;
         }
-
         const fileCount = selectedIndices.size;
         const confirmed = await showConfirm({
             title: '🔄 Обертання вибраних файлів',
@@ -381,29 +412,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const loadingOverlay = document.createElement('div');
         loadingOverlay.className = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <div class="loader"></div>
-                <div class="progress-text">
-                    <p id="rotateStatus">Поворот файлів...</p>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="rotateProgressBar"></div>
-                    </div>
-                    <p id="rotateCounter">0 / ${fileCount} файлів</p>
-                </div>
-            </div>
-        `;
+        loadingOverlay.innerHTML = `<div class="loading-spinner"><div class="loader"></div><div class="progress-text"><p id="rotateStatus">Поворот файлів...</p><div class="progress-bar-container"><div class="progress-bar-fill" id="rotateProgressBar"></div></div><p id="rotateCounter">0 / ${fileCount} файлів</p></div></div>`;
         document.body.appendChild(loadingOverlay);
-
         const rotateStatus = document.getElementById('rotateStatus');
         const rotateCounter = document.getElementById('rotateCounter');
         const rotateProgressBar = document.getElementById('rotateProgressBar');
-
         rotateSelectedBtn.disabled = true;
         const indices = Array.from(selectedIndices).sort((a,b)=>a-b);
-        let successCount = 0;
-        let processed = 0;
-
+        let successCount = 0, processed = 0;
         for (let idx of indices) {
             processed++;
             const percent = (processed / fileCount) * 100;
@@ -411,129 +427,53 @@ document.addEventListener('DOMContentLoaded', function() {
             rotateCounter.innerText = `Оброблено ${processed} з ${fileCount} файлів`;
             const fileName = selectedFiles[idx].name;
             rotateStatus.innerText = `Поворот: ${fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName}`;
-
             try {
                 const rotatedFile = await rotateFile(selectedFiles[idx].file, 90);
-                const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(rotatedFile);
-                selectedFiles[idx] = { ...selectedFiles[idx], file: rotatedFile, thumbnailUrl, pageCount, size: fileSize };
+                const newData = await generateThumbnail(rotatedFile);
+                selectedFiles[idx] = { ...selectedFiles[idx], file: rotatedFile, thumbnailUrl: newData.thumbnailUrl, pageCount: newData.pageCount, size: newData.fileSize };
+                updateSingleCard(idx);
                 successCount++;
             } catch (err) {
                 showMessage(`❌ Помилка повороту файлу "${selectedFiles[idx].name}": ${err.message}`, 'error');
             }
         }
-
         loadingOverlay.remove();
-        renderFilesGrid();
         updateStats();
         rotateSelectedBtn.disabled = false;
-
-        if (successCount > 0) {
-            showMessage(`✅ Повернуто ${successCount} з ${fileCount} файлів`, 'success');
-        }
+        if (successCount > 0) showMessage(`✅ Повернуто ${successCount} з ${fileCount} файлів`, 'success');
     }
 
     function toggleFileSelection(index, event) {
-        if (event && (event.target.closest('.file__btn') || event.target.closest('.drag-handle'))) return;
-
+        if (event && (event.target.closest('.file__btn') || event.target.closest('.drag-handle') || event.target.closest('.file-card-checkbox'))) return;
         const wasSelected = selectedIndices.has(index);
-        if (wasSelected) {
-            selectedIndices.delete(index);
-        } else {
-            selectedIndices.add(index);
-        }
-        renderFilesGrid();
+        if (wasSelected) selectedIndices.delete(index);
+        else selectedIndices.add(index);
+        const card = document.querySelector(`.file-card[data-index='${index}']`);
+        if (card) updateCardSelectionState(card, selectedIndices.has(index));
         updateMergeButtons();
-
         const fileName = selectedFiles[index]?.name || '';
-        if (!wasSelected) {
-            showMessage(`✅ Вибрано файл: ${fileName.substring(0, 30)}${fileName.length > 30 ? '...' : ''}`, 'success');
-        } else {
-            showMessage(`✖️ Знято виділення: ${fileName.substring(0, 30)}${fileName.length > 30 ? '...' : ''}`, 'info');
-        }
+        showMessage(wasSelected ? `✖️ Знято виділення: ${fileName.substring(0,30)}${fileName.length>30?'...':''}` : `✅ Вибрано файл: ${fileName.substring(0,30)}${fileName.length>30?'...':''}`, wasSelected ? 'info' : 'success');
     }
 
     function selectAll() {
         for (let i = 0; i < selectedFiles.length; i++) {
             selectedIndices.add(i);
+            const card = document.querySelector(`.file-card[data-index='${i}']`);
+            if (card) updateCardSelectionState(card, true);
         }
-        renderFilesGrid();
         updateMergeButtons();
-        const newCount = selectedIndices.size;
-        if (newCount > 0) {
-            showMessage(`✅ Вибрано ${newCount} з ${selectedFiles.length} файлів`, 'success');
-        }
+        showMessage(`✅ Вибрано ${selectedIndices.size} з ${selectedFiles.length} файлів`, 'success');
     }
 
     function clearSelection() {
         const previousCount = selectedIndices.size;
+        for (let idx of selectedIndices) {
+            const card = document.querySelector(`.file-card[data-index='${idx}']`);
+            if (card) updateCardSelectionState(card, false);
+        }
         selectedIndices.clear();
-        renderFilesGrid();
         updateMergeButtons();
-        if (previousCount > 0) {
-            showMessage(`✖️ Знято виділення з ${previousCount} файлів`, 'info');
-        }
-    }
-
-    async function deleteSelected() {
-        if (selectedIndices.size === 0) {
-            showMessage('❌ Не вибрано жодного файлу для видалення', 'error');
-            return;
-        }
-
-        const fileCount = selectedIndices.size;
-        const confirmed = await showConfirm({
-            title: '🗑 Видалення вибраних файлів',
-            message: `Видалити ${fileCount} вибраних файлів?`,
-            confirmText: 'Видалити',
-            cancelText: 'Скасувати'
-        });
-        if (!confirmed) return;
-
-        const loadingOverlay = document.createElement('div');
-        loadingOverlay.className = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <div class="loader"></div>
-                <div class="progress-text">
-                    <p id="deleteStatus">Видалення файлів...</p>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="deleteProgressBar"></div>
-                    </div>
-                    <p id="deleteCounter">0 / ${fileCount} файлів</p>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(loadingOverlay);
-
-        const deleteStatus = document.getElementById('deleteStatus');
-        const deleteCounter = document.getElementById('deleteCounter');
-        const deleteProgressBar = document.getElementById('deleteProgressBar');
-
-        const indices = Array.from(selectedIndices).sort((a,b) => b - a);
-        let processed = 0;
-
-        for (let idx of indices) {
-            processed++;
-            const percent = (processed / fileCount) * 100;
-            deleteProgressBar.style.width = `${percent}%`;
-            deleteCounter.innerText = `Видалено ${processed} з ${fileCount} файлів`;
-            const fileName = selectedFiles[idx]?.name || 'файл';
-            deleteStatus.innerText = `Видалення: ${fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName}`;
-            selectedFiles.splice(idx, 1);
-        }
-
-        selectedIndices.clear();
-        loadingOverlay.remove();
-
-        if (selectedFiles.length === 0) {
-            uploader.style.display = 'block';
-            filesContainer.style.display = 'none';
-            topSidebar.style.display = 'none';
-        }
-        renderFilesGrid();
-        updateMergeButtons();
-        updateStats();
-        showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
+        if (previousCount > 0) showMessage(`✖️ Знято виділення з ${previousCount} файлів`, 'info');
     }
 
     async function mergeSelected() {
@@ -541,7 +481,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage(`❌ Потрібно вибрати принаймні 2 PDF-файли для об'єднання. Вибрано: ${selectedIndices.size}`, 'error');
             return;
         }
-
         const fileCount = selectedIndices.size;
         const confirmed = await showConfirm({
             title: '🔗 Об\'єднання вибраних файлів',
@@ -550,7 +489,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelText: 'Скасувати'
         });
         if (!confirmed) return;
-
         const filesToMerge = Array.from(selectedIndices).sort((a,b)=>a-b).map(i => selectedFiles[i].file);
         await performMerge(filesToMerge, 'merged_selected.pdf', mergeSelectedBtn, fileCount);
     }
@@ -560,7 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showMessage(`❌ Додайте принаймні 2 PDF-файли для об'єднання. Зараз: ${selectedFiles.length}`, 'error');
             return;
         }
-
         const fileCount = selectedFiles.length;
         const confirmed = await showConfirm({
             title: '🔗 Об\'єднання всіх файлів',
@@ -569,64 +506,38 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelText: 'Скасувати'
         });
         if (!confirmed) return;
-
         const allFiles = selectedFiles.map(item => item.file);
         await performMerge(allFiles, 'merged_all.pdf', mergeAllBtn, fileCount);
     }
 
     async function performMerge(files, filename, btn, fileCount) {
         btn.disabled = true;
-
         const loadingOverlay = document.createElement('div');
         loadingOverlay.className = 'loading-overlay';
-        loadingOverlay.innerHTML = `
-            <div class="loading-spinner">
-                <div class="loader"></div>
-                <div class="progress-text">
-                    <p id="mergeStatus">Об'єднання файлів...</p>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" id="mergeProgressBar"></div>
-                    </div>
-                    <p id="mergeCounter">0 / ${fileCount} файлів</p>
-                </div>
-            </div>
-        `;
+        loadingOverlay.innerHTML = `<div class="loading-spinner"><div class="loader"></div><div class="progress-text"><p id="mergeStatus">Об'єднання файлів...</p><div class="progress-bar-container"><div class="progress-bar-fill" id="mergeProgressBar"></div></div><p id="mergeCounter">0 / ${fileCount} файлів</p></div></div>`;
         document.body.appendChild(loadingOverlay);
-
         const mergeStatus = document.getElementById('mergeStatus');
         const mergeCounter = document.getElementById('mergeCounter');
         const mergeProgressBar = document.getElementById('mergeProgressBar');
-
         progressContainer.style.display = 'block';
         progressBar.style.width = '0%';
-
         let processed = 0;
-        const totalFiles = fileCount;
-
         const updateProgress = () => {
             processed++;
-            const percent = (processed / totalFiles) * 100;
+            const percent = (processed / fileCount) * 100;
             if (mergeProgressBar) mergeProgressBar.style.width = `${percent}%`;
-            if (mergeCounter) mergeCounter.innerText = `Файлів оброблено: ${processed} з ${totalFiles}`;
+            if (mergeCounter) mergeCounter.innerText = `Файлів оброблено: ${processed} з ${fileCount}`;
             progressBar.style.width = `${percent}%`;
-            if (mergeStatus) mergeStatus.innerText = `Об'єднання... ${processed} / ${totalFiles}`;
+            if (mergeStatus) mergeStatus.innerText = `Об'єднання... ${processed} / ${fileCount}`;
         };
-
         const formData = new FormData();
-        for (let file of files) {
-            formData.append('files', file);
-            updateProgress();
-            await new Promise(r => setTimeout(r, 50));
-        }
-
+        for (let file of files) { formData.append('files', file); updateProgress(); await new Promise(r => setTimeout(r, 50)); }
         try {
             const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
-
             if (response.ok) {
-                mergeProgressBar.style.width = '100%';
+                if (mergeProgressBar) mergeProgressBar.style.width = '100%';
                 progressBar.style.width = '100%';
                 mergeStatus.innerText = 'Завантаження результату...';
-
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -634,7 +545,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 a.download = filename;
                 a.click();
                 URL.revokeObjectURL(url);
-
                 loadingOverlay.remove();
                 showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
             } else throw new Error(await response.text() || 'Помилка сервера');
@@ -642,51 +552,26 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingOverlay.remove();
             showMessage(`❌ Помилка: ${err.message}`, 'error');
         } finally {
-            setTimeout(() => {
-                progressContainer.style.display = 'none';
-                btn.disabled = false;
-            }, 1000);
+            setTimeout(() => { progressContainer.style.display = 'none'; btn.disabled = false; }, 1000);
         }
     }
 
-    function initSortable() {
-        if (sortable) sortable.destroy();
-        if (!filesContainer) return;
-        sortable = new Sortable(filesContainer, {
-            animation: 200,
-            onEnd: function(evt) {
-                // Отримуємо перетягнутий елемент
-                const draggedItem = evt.item;
-                if (draggedItem) {
-                    const oldIdx = parseInt(draggedItem.getAttribute('data-index'), 10);
-                    // Отримуємо назву файлу
-                    const fileName = selectedFiles[oldIdx]?.name || 'файл';
-                    const shortName = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
-                    showMessage(`📌 Переміщено: ${shortName}`, 'success', 3000);
-                } else {
-                    showMessage('📌 Порядок файлів змінено', 'success', 3000);
-                }
-
-                // Оновлюємо порядок у масиві selectedFiles та індекси вибраних
-                const items = filesContainer.querySelectorAll('.file-card');
-                const newOrder = [];
-                const oldSelected = new Set(selectedIndices);
-                selectedIndices.clear();
-                items.forEach((item, newIdx) => {
-                    const oldIdx = parseInt(item.getAttribute('data-index'), 10);
-                    newOrder.push(selectedFiles[oldIdx]);
-                    if (oldSelected.has(oldIdx)) selectedIndices.add(newIdx);
-                });
-                selectedFiles = newOrder;
-                items.forEach((item, newIdx) => {
-                    item.setAttribute('data-index', newIdx);
-                });
-                updateMergeButtons();
-            }
-        });
-    }
-
+    // ========== РЕНДЕР СІТКИ ЗІ ЗБЕРЕЖЕННЯМ ПРОКРУТКИ ==========
     function renderFilesGrid() {
+        // Запам'ятовуємо перший видимий елемент перед перерисовкою
+        let firstVisibleIndex = null;
+        if (filesContainer.children.length > 0) {
+            const containerRect = filesContainer.getBoundingClientRect();
+            const cards = filesContainer.querySelectorAll('.file-card');
+            for (let i = 0; i < cards.length; i++) {
+                const cardRect = cards[i].getBoundingClientRect();
+                if (cardRect.top >= containerRect.top && cardRect.top < containerRect.bottom) {
+                    firstVisibleIndex = parseInt(cards[i].getAttribute('data-index'), 10);
+                    break;
+                }
+            }
+        }
+
         filesContainer.innerHTML = '';
         if (selectedFiles.length === 0) {
             filesContainer.innerHTML = '<div class="empty-state">Файли не вибрано</div>';
@@ -694,15 +579,14 @@ document.addEventListener('DOMContentLoaded', function() {
             sortable = null;
             return;
         }
-
         for (let i = 0; i < selectedFiles.length; i++) {
             const data = selectedFiles[i];
             const card = document.createElement('div');
             card.className = 'file-card';
             if (selectedIndices.has(i)) card.classList.add('selected');
             card.setAttribute('data-index', i);
-            card.addEventListener('click', (e) => toggleFileSelection(i, e));
 
+            // Чекбокс
             const chkDiv = document.createElement('div');
             chkDiv.className = 'file-card-checkbox';
             const chk = document.createElement('input');
@@ -715,17 +599,20 @@ document.addEventListener('DOMContentLoaded', function() {
             chkDiv.appendChild(span);
             card.appendChild(chkDiv);
 
+            // Підказка
             const tooltip = document.createElement('div');
             tooltip.className = 'file-tooltip';
             const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
             tooltip.innerText = `${sizeMB} MB • ${data.pageCount} стор.`;
             card.appendChild(tooltip);
 
+            // Ручка перетягування
             const dragHandle = document.createElement('div');
             dragHandle.className = 'drag-handle';
             dragHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
             card.appendChild(dragHandle);
 
+            // Кнопки дій
             const actions = document.createElement('div');
             actions.className = 'file__actions';
             const rotateBtn = document.createElement('a');
@@ -742,14 +629,20 @@ document.addEventListener('DOMContentLoaded', function() {
             actions.appendChild(removeBtn);
             card.appendChild(actions);
 
+            // Мініатюра
             const canvas = document.createElement('canvas');
             const img = new Image();
             img.src = data.thumbnailUrl;
-            img.onload = () => { canvas.width = img.width; canvas.height = img.height; canvas.getContext('2d').drawImage(img, 0, 0); };
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+            };
             canvas.style.width = '100%';
             canvas.style.height = 'auto';
             card.appendChild(canvas);
 
+            // Назва файлу
             const nameSpan = document.createElement('div');
             nameSpan.className = 'file__info__name';
             let displayName = data.name;
@@ -757,13 +650,28 @@ document.addEventListener('DOMContentLoaded', function() {
             nameSpan.innerText = displayName;
             card.appendChild(nameSpan);
 
+            // Прямий обробник події кліку
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.file__btn') || e.target.closest('.drag-handle') || e.target.closest('.file-card-checkbox')) return;
+                toggleFileSelection(i, e);
+            });
+
             filesContainer.appendChild(card);
         }
         initSortable();
         updateStats();
+
+        // Відновлюємо прокрутку до того ж елемента
+        if (firstVisibleIndex !== null && selectedFiles.length > 0) {
+            const newCard = document.querySelector(`.file-card[data-index='${firstVisibleIndex}']`);
+            if (newCard) {
+                newCard.scrollIntoView({ block: 'start', behavior: 'auto' });
+            } else if (selectedFiles.length > 0) {
+                const firstCard = document.querySelector('.file-card');
+                if (firstCard) firstCard.scrollIntoView({ block: 'start', behavior: 'auto' });
+            }
+        }
     }
-
-
 
     function updateMergeButtons() {
         const anySelected = selectedIndices.size > 0;
@@ -776,19 +684,12 @@ document.addEventListener('DOMContentLoaded', function() {
         rotateSelectedBtn.disabled = !anySelected;
     }
 
-    // Обробники подій
+    // Обробники подій (без змін)
     uploader.addEventListener('click', (e) => {
         if (pickButton && (e.target === pickButton || pickButton.contains(e.target))) return;
         fileInput.click();
     });
-
-    if (pickButton) {
-        pickButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            fileInput.click();
-        });
-    }
-
+    if (pickButton) pickButton.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
     uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('drag-over'); });
     uploader.addEventListener('dragleave', () => { uploader.classList.remove('drag-over'); });
     uploader.addEventListener('drop', async (e) => { e.preventDefault(); uploader.classList.remove('drag-over'); const files = Array.from(e.dataTransfer.files); if (files.length) await addFiles(files); });
