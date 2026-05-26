@@ -104,33 +104,39 @@
     const topSidebar = document.querySelector('.tool__sidebar.top-sidebar');
 
     // ========== ГАРЯЧІ КЛАВІШІ ==========
-    document.addEventListener('keydown', (e) => {
-        const activeConfirm = document.querySelector('.confirm-overlay');
-        if (activeConfirm) {
-            if (e.code === 'Escape') {
-                e.preventDefault();
-                const cancelBtn = activeConfirm.querySelector('.btn-cancel');
-                if (cancelBtn) cancelBtn.click();
-                else activeConfirm.remove();
-            }
-            return;
-        }
-        if (e.target.matches('input, textarea, .loading-overlay')) return;
-        const code = e.code;
-        if (e.ctrlKey && code === 'KeyA') { e.preventDefault(); if (selectedFiles.length > 0) selectAll(); }
-        else if (code === 'Delete') { e.preventDefault(); if (selectedIndices.size > 0) deleteSelected(); }
-        else if (e.ctrlKey && code === 'KeyR') { e.preventDefault(); if (selectedIndices.size > 0) rotateSelected(); }
-        else if (e.ctrlKey && code === 'KeyM') { e.preventDefault(); if (selectedIndices.size >= 2) mergeSelected(); }
-        else if (e.ctrlKey && code === 'KeyD') { e.preventDefault(); if (selectedFiles.length >= 2) mergeAll(); }
-        else if (code === 'Escape') { e.preventDefault(); if (selectedIndices.size > 0) clearSelection(); }
-        else if (e.ctrlKey && code === 'KeyE') {
+document.addEventListener('keydown', (e) => {
+    const activeConfirm = document.querySelector('.confirm-overlay');
+    if (activeConfirm) {
+        if (e.code === 'Escape') {
             e.preventDefault();
-            if (selectedFiles.length > 0 && addMoreBtn && addMoreBtn.style.display !== 'none') {
-                fileInput.click();
-                showMessage('➕ Виберіть додаткові PDF файли', 'info', 2000);
-            }
+            const cancelBtn = activeConfirm.querySelector('.btn-cancel');
+            if (cancelBtn) cancelBtn.click();
+            else activeConfirm.remove();
         }
-    });
+        return;
+    }
+    if (e.target.matches('input, textarea, .loading-overlay')) return;
+    const code = e.code;
+    if (e.ctrlKey && code === 'KeyA') { e.preventDefault(); if (selectedFiles.length > 0) selectAll(); }
+    else if (code === 'Delete') { e.preventDefault(); if (selectedIndices.size > 0) deleteSelected(); }
+    else if (e.ctrlKey && code === 'KeyR') { e.preventDefault(); if (selectedIndices.size > 0) rotateSelected(); }
+    else if (e.ctrlKey && code === 'KeyM') { e.preventDefault(); if (selectedIndices.size >= 2) mergeSelected(); }
+    else if (e.ctrlKey && code === 'KeyD') { e.preventDefault(); if (selectedFiles.length >= 2) mergeAll(); }
+    else if (code === 'Escape') { e.preventDefault(); if (selectedIndices.size > 0) clearSelection(); }
+    else if (e.ctrlKey && code === 'KeyE') {
+        e.preventDefault();
+        if (selectedFiles.length > 0 && addMoreBtn && addMoreBtn.style.display !== 'none') {
+            fileInput.click();
+            showMessage('➕ Виберіть додаткові PDF файли', 'info', 2000);
+        }
+    }
+    // 🆕 Хоткей для виклику довідки (Ctrl + I)
+    else if (e.ctrlKey && code === 'KeyI') {
+        e.preventDefault();
+        const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
+        if (hotkeyBtn) hotkeyBtn.click();
+    }
+});
 
     // ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
     const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
@@ -144,6 +150,7 @@
                 <div class="hotkey-modal-content">
                     <h3><i class="fas fa-keyboard"></i> Гарячі клавіші</h3>
                     <div class="hotkey-list">
+                        <div class="hotkey-key">Ctrl + I</div><div class="hotkey-desc">ℹ️ Гарячі клавіші</div>
                         <div class="hotkey-key">Ctrl + A</div><div class="hotkey-desc">✅ Вибрати всі файли</div>
                         <div class="hotkey-key">Delete</div><div class="hotkey-desc">🗑 Видалити вибрані файли</div>
                         <div class="hotkey-key">Ctrl + R</div><div class="hotkey-desc">🔄 Повернути вибрані файли</div>
