@@ -248,7 +248,6 @@
         const chk = document.createElement('input');
         chk.type = 'checkbox';
         chk.checked = selectedIndices.has(index);
-        // Обробник бере індекс з атрибута картки
         chk.addEventListener('click', (e) => {
             e.stopPropagation();
             const currentCard = e.target.closest('.file-card');
@@ -317,7 +316,6 @@
         nameSpan.innerText = displayName;
         card.appendChild(nameSpan);
 
-        // Клік по картці – теж бере індекс з атрибута
         card.addEventListener('click', (e) => {
             if (e.target.closest('.file__btn') || e.target.closest('.drag-handle') || e.target.closest('.file-card-checkbox')) return;
             const idx = parseInt(card.getAttribute('data-index'), 10);
@@ -352,7 +350,7 @@
         }
     }
 
-    // ========== СОРТУВАННЯ (без перерисовки, тільки оновлення індексів) ==========
+    // ========== СОРТУВАННЯ (без перерисовки) ==========
     function initSortable() {
         if (sortable) sortable.destroy();
         if (!filesContainer) return;
@@ -360,7 +358,6 @@
             animation: 200,
             onEnd: function() {
                 const cards = filesContainer.querySelectorAll('.file-card');
-                // Перебудовуємо selectedFiles та selectedIndices
                 const newSelectedFiles = [];
                 const newSelectedIndices = new Set();
                 cards.forEach((card, newIdx) => {
@@ -372,11 +369,9 @@
                 });
                 selectedFiles = newSelectedFiles;
                 selectedIndices = newSelectedIndices;
-                // Оновлюємо атрибути data-index
                 cards.forEach((card, newIdx) => {
                     card.setAttribute('data-index', newIdx);
                 });
-                // Обробники подій не змінюються – вони читають індекс з атрибута
                 updateMergeButtons();
                 showMessage('📌 Порядок файлів змінено', 'success', 3000);
             }
@@ -443,7 +438,7 @@
         }
     }
 
-    // ========== ВИДАЛЕННЯ ФАЙЛІВ ==========
+    // ========== ВИДАЛЕННЯ ОДНОГО ФАЙЛУ (без перерисовки) ==========
     async function removeFile(index) {
         const fileName = selectedFiles[index]?.name || 'файл';
         const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
@@ -455,7 +450,14 @@
         });
         if (!confirmed) return;
 
+        // Видаляємо картку з DOM
+        const cardToRemove = document.querySelector(`.file-card[data-index='${index}']`);
+        if (cardToRemove) cardToRemove.remove();
+
+        // Видаляємо з масиву
         selectedFiles.splice(index, 1);
+
+        // Оновлюємо selectedIndices
         const newSelected = new Set();
         for (let idx of selectedIndices) {
             if (idx > index) newSelected.add(idx - 1);
@@ -463,17 +465,28 @@
         }
         selectedIndices = newSelected;
 
+        // Оновлюємо атрибути data-index для всіх карток, що залишилися
+        const remainingCards = filesContainer.querySelectorAll('.file-card');
+        remainingCards.forEach((card, newIdx) => {
+            card.setAttribute('data-index', newIdx);
+        });
+
+        // Якщо файлів не залишилось, ховаємо сітку
         if (selectedFiles.length === 0) {
             uploader.style.display = 'block';
             filesContainer.style.display = 'none';
             topSidebar.style.display = 'none';
+            filesContainer.innerHTML = '<div class="empty-state">Файли не вибрано</div>';
+            if (sortable) sortable.destroy();
+            sortable = null;
         }
-        renderFilesGrid();
+
         updateMergeButtons();
         updateStats();
         showMessage(`✅ Видалено файл: ${displayName}`, 'success');
     }
 
+    // ========== МАСОВЕ ВИДАЛЕННЯ (з перерисовкою, але зі збереженням прокрутки) ==========
     async function deleteSelected() {
         if (selectedIndices.size === 0) {
             showMessage('❌ Не вибрано жодного файлу для видалення', 'error');
@@ -515,7 +528,7 @@
             filesContainer.style.display = 'none';
             topSidebar.style.display = 'none';
         }
-        renderFilesGrid();
+        renderFilesGrid(); // перемальовуємо зі збереженням прокрутки
         updateMergeButtons();
         updateStats();
         showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
@@ -545,7 +558,7 @@
         });
     }
 
-    // ========== ОБЕРТАННЯ (оновлюємо окрему картку без перерисовки) ==========
+    // ========== ОБЕРТАННЯ (оновлення однієї картки) ==========
     function updateSingleCard(index) {
         const card = document.querySelector(`.file-card[data-index='${index}']`);
         if (!card) return;
