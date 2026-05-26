@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Организовать PDF – PDF Plus</title>
+    <link rel="icon" type="image/png" th:href="@{/img/ico.png}">
+    <link rel="stylesheet" th:href="@{/css/fragments/nav-menu.css}">
+    <link rel="stylesheet" th:href="@{/css/fragments/footer.css}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -171,6 +174,9 @@
 </head>
 <body>
 <div class="container">
+    <!-- Навігаційне меню -->
+    <div th:replace="~{fragments/nav-menu :: nav-menu}"></div>
+    
     <div class="card">
         <a href="/" class="back-link">← На головну</a>
         <h1>📑 Организовать PDF</h1>
@@ -203,6 +209,8 @@
             <i>ℹ️</i> Перетаскивайте страницы для изменения порядка. Нажмите на крестик для удаления. Кнопка "+" добавляет пустую страницу в конец.
         </div>
     </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
 
 <script>

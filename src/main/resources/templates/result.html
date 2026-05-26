@@ -1,10 +1,13 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✅ Готово! — PDF Plus</title>
-    <style>
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✅ Готово! — PDF Plus</title>
+  <link rel="icon" type="image/png" th:href="@{/img/ico.png}">
+  <link rel="stylesheet" th:href="@{/css/fragments/nav-menu.css}">
+  <link rel="stylesheet" th:href="@{/css/fragments/footer.css}">
+  <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -126,67 +129,55 @@
             font-size: 13px;
         }
     </style>
-</head>
-<body>
-<div class="container">
-    <!-- ✅ Успіх -->
-    <div class="success-icon">✅</div>
-    <h1>Готово!</h1>
-    <p class="message" th:if="${message}" th:text="${message}">Ваш файл успішно оброблено.</p>
-
-    <!-- 🔽 Завантаження -->
-    <div class="download-section">
-        <a href="/api/pdf/download" class="btn btn-success">⬇️ Завантажити результат</a>
+ </head>
+ <body>
+  <div class="container">
+   <!-- Навігаційне меню -->
+   <div th:replace="~{fragments/nav-menu :: nav-menu}"></div><!-- ✅ Успіх -->
+   <div class="success-icon">
+    ✅
+   </div>
+   <h1>Готово!</h1>
+   <p class="message" th:if="${message}" th:text="${message}">Ваш файл успішно оброблено.</p><!-- 🔽 Завантаження -->
+   <div class="download-section">
+    <a href="/api/pdf/download" class="btn btn-success">⬇️ Завантажити результат</a>
+   </div><!-- ⏱️ TTL Notice -->
+   <div class="ttl-notice">
+    ⏰ Файли будуть автоматично видалені через <strong>30–60 хвилин</strong>
+   </div><!-- 🧭 Повне меню навігації -->
+   <h3 style="text-align:center; margin:30px 0 15px;">🔧 Інші інструменти</h3>
+   <div class="nav-grid">
+    <div class="nav-card">
+     <span class="icon">🏠</span> <a href="/">Головна</a>
     </div>
-
-    <!-- ⏱️ TTL Notice -->
-    <div class="ttl-notice">
-        ⏰ Файли будуть автоматично видалені через <strong>30–60 хвилин</strong>
+    <div class="nav-card">
+     <span class="icon">🔗</span> <a href="/merge">Об'єднати PDF</a>
     </div>
-
-    <!-- 🧭 Повне меню навігації -->
-    <h3 style="text-align:center; margin:30px 0 15px;">🔧 Інші інструменти</h3>
-    <div class="nav-grid">
-        <div class="nav-card">
-            <span class="icon">🏠</span>
-            <a href="/">Головна</a>
-        </div>
-        <div class="nav-card">
-            <span class="icon">🔗</span>
-            <a href="/merge">Об'єднати PDF</a>
-        </div>
-        <div class="nav-card">
-            <span class="icon">✂️</span>
-            <a href="/split">Розділити PDF</a>
-        </div>
-        <div class="nav-card">
-            <span class="icon">📑</span>
-            <a href="/organize">Організувати сторінки</a>
-        </div>
-        <div class="nav-card">
-            <span class="icon">🔄</span>
-            <a href="/result?message=Повернутися">Повторити дію</a>
-        </div>
-        <div class="nav-card">
-            <span class="icon">📱</span>
-            <a href="/scan">Сканувати в PDF</a>
-        </div>
-        <div class="nav-card">
-            <span class="icon">📋</span>
-            <a href="/history">Історія файлів</a>
-        </div>
+    <div class="nav-card">
+     <span class="icon">✂️</span> <a href="/split">Розділити PDF</a>
     </div>
-
-    <!-- 🔙 Кнопка назад -->
-    <div style="text-align:center; margin-top:20px;">
-        <button onclick="history.back()" class="btn btn-outline">← Назад</button>
+    <div class="nav-card">
+     <span class="icon">📑</span> <a href="/organize">Організувати сторінки</a>
     </div>
-
-    <!-- 🦶 Footer -->
-    <div class="footer">
-        <p><strong>PDF Plus</strong> — швидка обробка PDF онлайн</p>
-        <p>🔒 Безпечно • ⚡ Миттєво • 🗑️ Автовидалення</p>
+    <div class="nav-card">
+     <span class="icon">🔄</span> <a href="/result?message=Повернутися">Повторити дію</a>
     </div>
-</div>
-</body>
+    <div class="nav-card">
+     <span class="icon">📱</span> <a href="/scan">Сканувати в PDF</a>
+    </div>
+    <div class="nav-card">
+     <span class="icon">📋</span> <a href="/history">Історія файлів</a>
+    </div>
+   </div><!-- 🔙 Кнопка назад -->
+   <div style="text-align:center; margin-top:20px;">
+    <button onclick="history.back()" class="btn btn-outline">← Назад</button>
+   </div><!-- 🦶 Footer -->
+   <div class="footer">
+    <p><strong>PDF Plus</strong> — швидка обробка PDF онлайн</p>
+    <p>🔒 Безпечно • ⚡ Миттєво • 🗑️ Автовидалення</p>
+   </div>
+  </div>
+
+  <div th:replace="~{fragments/footer :: footer}"></div>
+ </body>
 </html>
