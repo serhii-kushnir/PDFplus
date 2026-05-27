@@ -32,38 +32,67 @@ function openDB() {
 
 async function saveSessionToIndexedDB() {
     if (!db) await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    await store.clear();
+    // 1. Підготуємо дані за межами транзакції (щоб уникнути асинхронності всередині)
+    const itemsToStore = [];
     for (let i = 0; i < selectedFiles.length; i++) {
         const item = selectedFiles[i];
         if (!item.file) continue;
         const blob = await item.file.arrayBuffer().then(buf => new Blob([buf], { type: 'application/pdf' }));
-        store.put({ id: i, name: item.name, size: item.size, pageCount: item.pageCount, thumbnailUrl: item.thumbnailUrl, fileBlob: blob });
+        itemsToStore.push({
+            id: i,
+            name: item.name,
+            size: item.size,
+            pageCount: item.pageCount,
+            thumbnailUrl: item.thumbnailUrl,
+            fileBlob: blob
+        });
     }
-    await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = reject; });
+    if (itemsToStore.length === 0) return;
+
+    // 2. Відкриваємо транзакцію
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+
+    // 3. Очищення сховища
+    await new Promise((resolve, reject) => {
+        const clearReq = store.clear();
+        clearReq.onsuccess = () => resolve();
+        clearReq.onerror = () => reject(clearReq.error);
+    });
+
+    // 4. Запис усіх елементів
+    const putPromises = itemsToStore.map(item => {
+        return new Promise((resolve, reject) => {
+            const putReq = store.put(item);
+            putReq.onsuccess = () => resolve();
+            putReq.onerror = () => reject(putReq.error);
+        });
+    });
+    await Promise.all(putPromises);
+
+    // 5. Дочекаємося завершення транзакції
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
 }
 
-async function restoreSessionFromIndexedDB() {
-    if (!db) await openDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const items = await new Promise((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
         request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            db = request.result;
+            resolve(db);
+        };
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
     });
-    if (items.length === 0) return false;
-    const restored = await Promise.all(items.map(async (item) => {
-        const file = new File([item.fileBlob], item.name, { type: 'application/pdf' });
-        return { file, name: item.name, size: item.size, pageCount: item.pageCount, thumbnailUrl: item.thumbnailUrl, allThumbnails: null };
-    }));
-    selectedFiles = restored;
-    selectedIndices.clear();
-    const clearTx = db.transaction(STORE_NAME, 'readwrite');
-    clearTx.objectStore(STORE_NAME).clear();
-    await new Promise((resolve, reject) => { clearTx.oncomplete = resolve; clearTx.onerror = reject; });
-    return true;
 }
 
 // DOM elements
@@ -857,6 +886,44 @@ async function performMerge(files, filename, btn, fileCount) {
     } finally {
         setTimeout(() => { progressContainer.style.display = 'none'; btn.disabled = false; }, 1000);
     }
+}
+
+async function restoreSessionFromIndexedDB() {
+    if (!db) await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const items = await new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+    if (items.length === 0) return false;
+    const restored = await Promise.all(items.map(async (item) => {
+        const file = new File([item.fileBlob], item.name, { type: 'application/pdf' });
+        return {
+            file: file,
+            name: item.name,
+            size: item.size,
+            pageCount: item.pageCount,
+            thumbnailUrl: item.thumbnailUrl,
+            allThumbnails: null
+        };
+    }));
+    selectedFiles = restored;
+    selectedIndices.clear();
+    // Видаляємо сесію після відновлення, щоб уникнути дублювання
+    const clearTx = db.transaction(STORE_NAME, 'readwrite');
+    const clearStore = clearTx.objectStore(STORE_NAME);
+    await new Promise((resolve, reject) => {
+        const clearReq = clearStore.clear();
+        clearReq.onsuccess = () => resolve();
+        clearReq.onerror = () => reject(clearReq.error);
+    });
+    await new Promise((resolve, reject) => {
+        clearTx.oncomplete = resolve;
+        clearTx.onerror = () => reject(clearTx.error);
+    });
+    return true;
 }
 
 // Event listeners
