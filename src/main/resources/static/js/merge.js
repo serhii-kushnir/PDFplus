@@ -583,14 +583,21 @@ function initSortable() {
     if (!filesContainer) return;
     sortable = new Sortable(filesContainer, {
         animation: 200,
-        onEnd: async function() {
+        onEnd: async function(evt) {
+            // Отримуємо перетягнутий DOM-елемент
+            const draggedItem = evt.item;
+            // Отримуємо старий індекс з атрибута data-index (до зміни порядку)
+            const oldIdx = parseInt(draggedItem.getAttribute('data-index'), 10);
+            // Назва файлу
+            const fileName = selectedFiles[oldIdx]?.name || 'файл';
+
             const cards = filesContainer.querySelectorAll('.file-card');
             const newSelectedFiles = [];
             const newSelectedIndices = new Set();
             cards.forEach((card, newIdx) => {
-                const oldIdx = parseInt(card.getAttribute('data-index'), 10);
-                newSelectedFiles.push(selectedFiles[oldIdx]);
-                if (selectedIndices.has(oldIdx)) {
+                const oldIdxCard = parseInt(card.getAttribute('data-index'), 10);
+                newSelectedFiles.push(selectedFiles[oldIdxCard]);
+                if (selectedIndices.has(oldIdxCard)) {
                     newSelectedIndices.add(newIdx);
                 }
             });
@@ -600,7 +607,7 @@ function initSortable() {
                 card.setAttribute('data-index', newIdx);
             });
             updateMergeButtons();
-            showMessage('📌 Порядок файлів змінено', 'success', 3000);
+            showMessage(`📌 Файл "${fileName}" переміщено`, 'success', 3000);
             await saveSessionToIndexedDB();
         }
     });
@@ -617,6 +624,7 @@ async function addFiles(newFiles) {
         const file = newFiles[i];
         progress.update(i, `Обробка ${i+1} з ${total}: ${file.name}`);
 
+        // Перевірки розміру, типу, сигнатури, дублікатів...
         if (file.size > MAX_FILE_SIZE_BYTES) {
             showMessage(`❌ Файл "${file.name}" перевищує ліміт ${MAX_FILE_SIZE_MB} МБ (${(file.size / (1024 * 1024)).toFixed(2)} МБ)`, 'error', 5000);
             continue;
@@ -639,26 +647,42 @@ async function addFiles(newFiles) {
             showMessage(`Файл "${file.name}" вже доданий`, 'error');
             continue;
         }
+
         try {
             const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
-            selectedFiles.push({ file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null });
+            const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
+            const newIndex = selectedFiles.length;
+            selectedFiles.push(newFileData);
+
+            // Перший файл – повний рендер (показуємо сітку та верхню панель)
+            if (selectedFiles.length === 1) {
+                uploader.style.display = 'none';
+                filesContainer.style.display = 'flex';
+                topSidebar.style.display = 'flex';
+                renderFilesGrid(); // викликає initSortable()
+            } else {
+                // Додаємо нову картку в кінець контейнера
+                const newCard = createCardElement(newFileData, newIndex);
+                filesContainer.appendChild(newCard);
+
+                // ОНОВЛЮЄМО АТРИБУТИ data-index для ВСІХ карток (порядок міг змінитися? Він не змінився, але ми просто оновимо)
+                const allCards = filesContainer.querySelectorAll('.file-card');
+                allCards.forEach((card, idx) => {
+                    card.setAttribute('data-index', idx);
+                });
+
+                // Оновлюємо статистику, кнопки та зберігаємо сесію
+                updateStats();
+                updateMergeButtons();
+            }
             added++;
+            progress.update(added, `Додано ${added} з ${total} файлів`);
         } catch (err) {
             showMessage(`❌ ${err.message || 'Помилка обробки'} для файлу "${file.name}"`, 'error');
         }
     }
     progress.update(total, `Готово! Додано ${added} файлів.`);
-    if (added > 0) {
-        if (selectedFiles.length > 0) {
-            uploader.style.display = 'none';
-            filesContainer.style.display = 'flex';
-            topSidebar.style.display = 'flex';
-        }
-        renderFilesGrid();
-        updateMergeButtons();
-        updateStats();
-        await saveSessionToIndexedDB();
-    }
+    await saveSessionToIndexedDB();
 }
 
 async function removeFile(index) {
