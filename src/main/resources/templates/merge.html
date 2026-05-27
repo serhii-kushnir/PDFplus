@@ -12,7 +12,101 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-<!--    <script src="/js/merge.js" defer></script>-->
+    <style>
+        /* Додаткові стилі для модального вікна – впевнимося, що вони є */
+        .pages-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .pages-modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .pages-modal-content {
+            background: white;
+            border-radius: 28px;
+            max-width: 90vw;
+            max-height: 85vh;
+            width: 900px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .pages-modal-header {
+            padding: 16px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pages-modal-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+        .close-modal-btn {
+            background: none;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            color: #64748b;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+        .close-modal-btn:hover {
+            color: #ef4444;
+        }
+        .pages-grid-modal {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+            padding: 24px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+        .modal-page-card {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .modal-page-card:hover {
+            transform: scale(1.02);
+            border-color: #e74c3c;
+            background: #fff5f3;
+        }
+        .modal-page-card canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+        }
+        .modal-page-card span {
+            display: block;
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+        }
+    </style>
 </head>
 <body>
 <div class="main">
@@ -83,6 +177,18 @@
     <!-- Футер -->
     <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
+
+<!-- Статичне модальне вікно для перегляду сторінок PDF -->
+<div id="pagePreviewModal" class="pages-modal">
+    <div class="pages-modal-content">
+        <div class="pages-modal-header">
+            <h3>📄 Сторінки PDF</h3>
+            <button class="close-modal-btn">&times;</button>
+        </div>
+        <div class="pages-grid-modal" id="modalPagesGrid"></div>
+    </div>
+</div>
+
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
@@ -105,40 +211,61 @@
     const progressBar = document.getElementById('progressBar');
     const topSidebar = document.querySelector('.tool__sidebar.top-sidebar');
 
+    // Модальне вікно
+    const modal = document.getElementById('pagePreviewModal');
+    const modalGrid = document.getElementById('modalPagesGrid');
+    const closeModalBtn = modal.querySelector('.close-modal-btn');
+
+    function closeModal() {
+        modal.classList.remove('active');
+        modalGrid.innerHTML = '';
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
     // ========== ГАРЯЧІ КЛАВІШІ ==========
-document.addEventListener('keydown', (e) => {
-    const activeConfirm = document.querySelector('.confirm-overlay');
-    if (activeConfirm) {
-        if (e.code === 'Escape') {
+    document.addEventListener('keydown', (e) => {
+        const activeConfirm = document.querySelector('.confirm-overlay');
+        if (activeConfirm) {
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                const cancelBtn = activeConfirm.querySelector('.btn-cancel');
+                if (cancelBtn) cancelBtn.click();
+                else activeConfirm.remove();
+            }
+            return;
+        }
+        if (modal.classList.contains('active')) {
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                closeModal();
+                return;
+            }
+        }
+        if (e.target.matches('input, textarea, .loading-overlay')) return;
+        const code = e.code;
+        if (e.ctrlKey && code === 'KeyA') { e.preventDefault(); if (selectedFiles.length > 0) selectAll(); }
+        else if (code === 'Delete') { e.preventDefault(); if (selectedIndices.size > 0) deleteSelected(); }
+        else if (e.ctrlKey && code === 'KeyR') { e.preventDefault(); if (selectedIndices.size > 0) rotateSelected(); }
+        else if (e.ctrlKey && code === 'KeyM') { e.preventDefault(); if (selectedIndices.size >= 2) mergeSelected(); }
+        else if (e.ctrlKey && code === 'KeyD') { e.preventDefault(); if (selectedFiles.length >= 2) mergeAll(); }
+        else if (code === 'Escape') { e.preventDefault(); if (selectedIndices.size > 0) clearSelection(); }
+        else if (e.ctrlKey && code === 'KeyE') {
             e.preventDefault();
-            const cancelBtn = activeConfirm.querySelector('.btn-cancel');
-            if (cancelBtn) cancelBtn.click();
-            else activeConfirm.remove();
+            if (selectedFiles.length > 0 && addMoreBtn && addMoreBtn.style.display !== 'none') {
+                fileInput.click();
+                showMessage('➕ Виберіть додаткові PDF файли', 'info', 2000);
+            }
         }
-        return;
-    }
-    if (e.target.matches('input, textarea, .loading-overlay')) return;
-    const code = e.code;
-    if (e.ctrlKey && code === 'KeyA') { e.preventDefault(); if (selectedFiles.length > 0) selectAll(); }
-    else if (code === 'Delete') { e.preventDefault(); if (selectedIndices.size > 0) deleteSelected(); }
-    else if (e.ctrlKey && code === 'KeyR') { e.preventDefault(); if (selectedIndices.size > 0) rotateSelected(); }
-    else if (e.ctrlKey && code === 'KeyM') { e.preventDefault(); if (selectedIndices.size >= 2) mergeSelected(); }
-    else if (e.ctrlKey && code === 'KeyD') { e.preventDefault(); if (selectedFiles.length >= 2) mergeAll(); }
-    else if (code === 'Escape') { e.preventDefault(); if (selectedIndices.size > 0) clearSelection(); }
-    else if (e.ctrlKey && code === 'KeyE') {
-        e.preventDefault();
-        if (selectedFiles.length > 0 && addMoreBtn && addMoreBtn.style.display !== 'none') {
-            fileInput.click();
-            showMessage('➕ Виберіть додаткові PDF файли', 'info', 2000);
+        else if (e.ctrlKey && code === 'KeyI') {
+            e.preventDefault();
+            const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
+            if (hotkeyBtn) hotkeyBtn.click();
         }
-    }
-    // 🆕 Хоткей для виклику довідки (Ctrl + I)
-    else if (e.ctrlKey && code === 'KeyI') {
-        e.preventDefault();
-        const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
-        if (hotkeyBtn) hotkeyBtn.click();
-    }
-});
+    });
 
     // ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
     const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
@@ -146,9 +273,9 @@ document.addEventListener('keydown', (e) => {
         hotkeyBtn.addEventListener('click', () => {
             const existingModal = document.querySelector('.hotkey-modal');
             if (existingModal) existingModal.remove();
-            const modal = document.createElement('div');
-            modal.className = 'hotkey-modal';
-            modal.innerHTML = `
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'hotkey-modal';
+            modalDiv.innerHTML = `
                 <div class="hotkey-modal-content">
                     <h3><i class="fas fa-keyboard"></i> Гарячі клавіші</h3>
                     <div class="hotkey-list">
@@ -158,16 +285,16 @@ document.addEventListener('keydown', (e) => {
                         <div class="hotkey-key">Ctrl + R</div><div class="hotkey-desc">🔄 Повернути вибрані файли</div>
                         <div class="hotkey-key">Ctrl + M</div><div class="hotkey-desc">🔗 Об'єднати вибрані файли</div>
                         <div class="hotkey-key">Ctrl + D</div><div class="hotkey-desc">🔗 Об'єднати всі файли</div>
-                        <div class="hotkey-key">Escape</div><div class="hotkey-desc">✖️ Очистити вибір / Закрити діалог</div>
+                        <div class="hotkey-key">Escape</div><div class="hotkey-desc">✖️ Очистити вибір / Закрити діалог / Закрити перегляд</div>
                         <div class="hotkey-key">Ctrl + E</div><div class="hotkey-desc">➕ Додати ще файли</div>
                     </div>
                     <button class="close-hotkey-btn">Зрозуміло</button>
                 </div>
             `;
-            document.body.appendChild(modal);
-            const closeBtn = modal.querySelector('.close-hotkey-btn');
-            closeBtn.onclick = () => modal.remove();
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            document.body.appendChild(modalDiv);
+            const closeBtn = modalDiv.querySelector('.close-hotkey-btn');
+            closeBtn.onclick = () => modalDiv.remove();
+            modalDiv.onclick = (e) => { if (e.target === modalDiv) modalDiv.remove(); };
         });
     }
 
@@ -245,7 +372,63 @@ document.addEventListener('keydown', (e) => {
         if (checkbox) checkbox.checked = isSelected;
     }
 
-    // ========== СТВОРЕННЯ КАРТКИ (обробники читають індекс з атрибута) ==========
+    // ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД СТОРІНОК ==========
+    async function showPagePreview(index) {
+        const fileItem = selectedFiles[index];
+        if (!fileItem) return;
+        modalGrid.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Завантаження сторінок...</div>';
+        modal.classList.add('active');
+
+        // Якщо вже згенеровані – показуємо
+        if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
+            renderPageThumbnails(fileItem.allThumbnails);
+            return;
+        }
+
+        try {
+            const arrayBuffer = await fileItem.file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const thumbnails = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 0.3 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                thumbnails.push(canvas.toDataURL());
+            }
+            fileItem.allThumbnails = thumbnails;
+            renderPageThumbnails(thumbnails);
+        } catch (err) {
+            modalGrid.innerHTML = `<div style="text-align:center; padding:40px; color:red;">❌ Помилка завантаження: ${err.message}</div>`;
+        }
+    }
+
+    function renderPageThumbnails(thumbnails) {
+        modalGrid.innerHTML = '';
+        thumbnails.forEach((thumbUrl, idx) => {
+            const card = document.createElement('div');
+            card.className = 'modal-page-card';
+            const canvas = document.createElement('canvas');
+            const img = new Image();
+            img.src = thumbUrl;
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+            };
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            const span = document.createElement('span');
+            span.innerText = `Стор. ${idx + 1}`;
+            card.appendChild(canvas);
+            card.appendChild(span);
+            modalGrid.appendChild(card);
+        });
+    }
+
+    // ========== СТВОРЕННЯ КАРТКИ ==========
     function createCardElement(data, index) {
         const card = document.createElement('div');
         card.className = 'file-card';
@@ -325,15 +508,16 @@ document.addEventListener('keydown', (e) => {
         nameSpan.innerText = displayName;
         card.appendChild(nameSpan);
 
+        // Клік по картці – відкриття попереднього перегляду всіх сторінок
         card.addEventListener('click', (e) => {
             if (e.target.closest('.file__btn') || e.target.closest('.drag-handle') || e.target.closest('.file-card-checkbox')) return;
             const idx = parseInt(card.getAttribute('data-index'), 10);
-            toggleFileSelection(idx, e);
+            showPagePreview(idx);
         });
         return card;
     }
 
-    // ========== ПЕРЕМАЛЬОВУВАННЯ ВСІЄЇ СІТКИ (зі збереженням прокрутки) ==========
+    // ========== ПЕРЕМАЛЬОВУВАННЯ СІТКИ ==========
     function renderFilesGrid() {
         let scrollPercent = 0;
         if (filesContainer.scrollHeight > filesContainer.clientHeight) {
@@ -359,7 +543,7 @@ document.addEventListener('keydown', (e) => {
         }
     }
 
-    // ========== СОРТУВАННЯ (без перерисовки) ==========
+    // ========== СОРТУВАННЯ ПЕРЕТЯГУВАННЯМ ==========
     function initSortable() {
         if (sortable) sortable.destroy();
         if (!filesContainer) return;
@@ -447,7 +631,7 @@ document.addEventListener('keydown', (e) => {
         }
     }
 
-    // ========== ВИДАЛЕННЯ ОДНОГО ФАЙЛУ (без перерисовки) ==========
+    // ========== ВИДАЛЕННЯ ФАЙЛІВ ==========
     async function removeFile(index) {
         const fileName = selectedFiles[index]?.name || 'файл';
         const displayName = fileName.length > 50 ? fileName.substring(0, 47) + '...' : fileName;
@@ -459,14 +643,10 @@ document.addEventListener('keydown', (e) => {
         });
         if (!confirmed) return;
 
-        // Видаляємо картку з DOM
         const cardToRemove = document.querySelector(`.file-card[data-index='${index}']`);
         if (cardToRemove) cardToRemove.remove();
 
-        // Видаляємо з масиву
         selectedFiles.splice(index, 1);
-
-        // Оновлюємо selectedIndices
         const newSelected = new Set();
         for (let idx of selectedIndices) {
             if (idx > index) newSelected.add(idx - 1);
@@ -474,13 +654,11 @@ document.addEventListener('keydown', (e) => {
         }
         selectedIndices = newSelected;
 
-        // Оновлюємо атрибути data-index для всіх карток, що залишилися
         const remainingCards = filesContainer.querySelectorAll('.file-card');
         remainingCards.forEach((card, newIdx) => {
             card.setAttribute('data-index', newIdx);
         });
 
-        // Якщо файлів не залишилось, ховаємо сітку
         if (selectedFiles.length === 0) {
             uploader.style.display = 'block';
             filesContainer.style.display = 'none';
@@ -489,13 +667,11 @@ document.addEventListener('keydown', (e) => {
             if (sortable) sortable.destroy();
             sortable = null;
         }
-
         updateMergeButtons();
         updateStats();
         showMessage(`✅ Видалено файл: ${displayName}`, 'success');
     }
 
-    // ========== МАСОВЕ ВИДАЛЕННЯ (з перерисовкою, але зі збереженням прокрутки) ==========
     async function deleteSelected() {
         if (selectedIndices.size === 0) {
             showMessage('❌ Не вибрано жодного файлу для видалення', 'error');
@@ -537,7 +713,7 @@ document.addEventListener('keydown', (e) => {
             filesContainer.style.display = 'none';
             topSidebar.style.display = 'none';
         }
-        renderFilesGrid(); // перемальовуємо зі збереженням прокрутки
+        renderFilesGrid();
         updateMergeButtons();
         updateStats();
         showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
@@ -567,7 +743,7 @@ document.addEventListener('keydown', (e) => {
         });
     }
 
-    // ========== ОБЕРТАННЯ (оновлення однієї картки) ==========
+    // ========== ОБЕРТАННЯ ==========
     function updateSingleCard(index) {
         const card = document.querySelector(`.file-card[data-index='${index}']`);
         if (!card) return;
