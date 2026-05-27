@@ -1,22 +1,33 @@
-/* ===== ФУТЕР (стиль як у nav-container) ===== */
+/* Футер з підтримкою темної теми */
+:root {
+    --footer-bg: white;
+    --footer-text: #5b6e8c;
+    --footer-border: rgba(255, 255, 255, 0.5);
+}
+
+body.dark {
+    --footer-bg: #0f172a;
+    --footer-text: #94a3b8;
+    --footer-border: #334155;
+}
+
 .pdf-footer {
-    background: white;
+    background: var(--footer-bg);
     border-radius: 16px;
     padding: 16px 24px;
     margin-top: 32px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--footer-border);
     text-align: center;
 }
 
 .pdf-footer p {
     margin: 0;
     font-size: 0.85rem;
-    color: #5b6e8c;
+    color: var(--footer-text);
     font-weight: 500;
 }
 
-/* Адаптивність для футера */
 @media (max-width: 768px) {
     .pdf-footer {
         padding: 12px 16px;

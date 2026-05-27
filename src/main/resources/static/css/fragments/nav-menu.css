@@ -1,17 +1,38 @@
-/* Навігаційні стилі в тон index.html */
+/* Навігаційні стилі з підтримкою темної теми */
+:root {
+    --nav-bg: white;
+    --nav-text: #1e2a3a;
+    --nav-link-hover-bg: linear-gradient(132deg, #eb2525, #982a2a);
+    --nav-link-hover-color: white;
+    --nav-link-active-bg: linear-gradient(135deg, #e74c3c, #982a2a);
+    --nav-link-active-color: white;
+    --nav-border: rgba(255, 255, 255, 0.5);
+}
+
+body.dark {
+    --nav-bg: #0f172a;
+    --nav-text: #f1f5f9;
+    --nav-link-hover-bg: linear-gradient(132deg, #c0392b, #7f1d1d);
+    --nav-link-hover-color: #f1f5f9;
+    --nav-link-active-bg: linear-gradient(135deg, #e74c3c, #c0392b);
+    --nav-link-active-color: white;
+    --nav-border: #334155;
+}
+
 .nav-container {
-    background: white;
+    background: var(--nav-bg);
     border-radius: 16px;
     padding: 12px 24px;
     margin-bottom: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border: 1px solid rgba(255,255,255,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--nav-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
 }
+
 .nav-brand {
     font-size: 1.6rem;
     font-weight: 700;
@@ -24,6 +45,7 @@
     align-items: center;
     gap: 8px;
 }
+
 .nav-links {
     display: flex;
     gap: 8px;
@@ -32,26 +54,51 @@
     padding: 0;
     flex-wrap: wrap;
 }
+
 .nav-links a {
     text-decoration: none;
-    color: #1e2a3a;
+    color: var(--nav-text);
     font-weight: 500;
     padding: 8px 16px;
     border-radius: 10px;
     transition: all 0.3s;
     font-size: 0.95rem;
-    transition: all 0.3s ease;
     display: inline-block;
 }
+
 .nav-links a:hover {
     transform: translateY(-2px);
-    background: linear-gradient(132deg, #eb2525, #982a2a);
-    color: white;
+    background: var(--nav-link-hover-bg);
+    color: var(--nav-link-hover-color);
 }
+
 .nav-links a.active {
-    background: linear-gradient(135deg, #e74c3c, #982a2a);
-    color: white;
+    background: var(--nav-link-active-bg);
+    color: var(--nav-link-active-color);
 }
+
+/* ... решта стилів (ті, що вже є) ... */
+
+/* Кнопка перемикання теми в навігації */
+.theme-toggle-nav {
+    background: var(--stats-bg, #eef2ff);
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 40px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary, #1f2a3e);
+    transition: all 0.2s;
+    margin-left: auto; /* притискає до правого краю, якщо потрібно */
+}
+.theme-toggle-nav:hover {
+    transform: translateY(-1px);
+    background: var(--progress-bg, #e2e8f0);
+}
+
 @media (max-width: 640px) {
     .nav-container {
         flex-direction: column;
