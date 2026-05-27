@@ -12,132 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <style>
-        .modal-title-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.modal-file-icon {
-    font-size: 1.3rem;
-}
-.modal-file-name {
-    font-weight: 600;
-    color: #1e293b;
-    max-width: 400px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.modal-file-stats {
-    font-size: 0.8rem;
-    color: #64748b;
-    background: #f1f5f9;
-    padding: 4px 10px;
-    border-radius: 20px;
-}
-        .file__btn.preview {
-    color: #8b5cf6;
-}
-.file__btn.preview:hover {
-    background: #8b5cf6;
-    color: white;
-}
-        /* Додаткові стилі для модального вікна – впевнимося, що вони є */
-        .pages-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 20000;
-            backdrop-filter: blur(5px);
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0.2s, opacity 0.2s;
-        }
-        .pages-modal.active {
-            visibility: visible;
-            opacity: 1;
-        }
-        .pages-modal-content {
-            background: white;
-            border-radius: 28px;
-            max-width: 90vw;
-            max-height: 85vh;
-            width: 900px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-        .pages-modal-header {
-            padding: 16px 24px;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .pages-modal-header h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 0;
-        }
-        .close-modal-btn {
-            background: none;
-            border: none;
-            font-size: 32px;
-            cursor: pointer;
-            color: #64748b;
-            transition: color 0.2s;
-            line-height: 1;
-        }
-        .close-modal-btn:hover {
-            color: #ef4444;
-        }
-        .pages-grid-modal {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 20px;
-            padding: 24px;
-            overflow-y: auto;
-            background: #ffffff;
-        }
-        .modal-page-card {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        }
-        .modal-page-card:hover {
-            transform: scale(1.02);
-            border-color: #e74c3c;
-            background: #fff5f3;
-        }
-        .modal-page-card canvas {
-            width: 100%;
-            height: auto;
-            border-radius: 12px;
-        }
-        .modal-page-card span {
-            display: block;
-            margin-top: 10px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #334155;
-        }
-    </style>
+<!--    <script src="/js/merge.js" defer></script>-->
 </head>
 <body>
 <div class="main">
@@ -208,22 +83,6 @@
     <!-- Футер -->
     <div th:replace="~{fragments/footer :: footer}"></div>
 </div>
-
-<!-- Статичне модальне вікно для перегляду сторінок PDF -->
-<div id="pagePreviewModal" class="pages-modal">
-    <div class="pages-modal-content">
-        <div class="pages-modal-header">
-            <div class="modal-title-info">
-                <span class="modal-file-icon">📄</span>
-                <span id="modalFileName" class="modal-file-name"></span>
-                <span id="modalFileStats" class="modal-file-stats"></span>
-            </div>
-            <button class="close-modal-btn">&times;</button>
-        </div>
-        <div class="pages-grid-modal" id="modalPagesGrid"></div>
-    </div>
-</div>
-
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
@@ -246,21 +105,6 @@
     const progressBar = document.getElementById('progressBar');
     const topSidebar = document.querySelector('.tool__sidebar.top-sidebar');
 
-    // Модальне вікно
-    const modal = document.getElementById('pagePreviewModal');
-    const modalGrid = document.getElementById('modalPagesGrid');
-    const closeModalBtn = modal.querySelector('.close-modal-btn');
-
-    function closeModal() {
-        modal.classList.remove('active');
-        modalGrid.innerHTML = '';
-    }
-
-    closeModalBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-
     // ========== ГАРЯЧІ КЛАВІШІ ==========
     document.addEventListener('keydown', (e) => {
         const activeConfirm = document.querySelector('.confirm-overlay');
@@ -273,7 +117,9 @@
             }
             return;
         }
-        if (modal.classList.contains('active')) {
+        // Закриття модалки при Escape
+        const modal = document.querySelector('.pages-modal');
+        if (modal && modal.classList.contains('active')) {
             if (e.code === 'Escape') {
                 e.preventDefault();
                 closeModal();
@@ -308,9 +154,9 @@
         hotkeyBtn.addEventListener('click', () => {
             const existingModal = document.querySelector('.hotkey-modal');
             if (existingModal) existingModal.remove();
-            const modalDiv = document.createElement('div');
-            modalDiv.className = 'hotkey-modal';
-            modalDiv.innerHTML = `
+            const modal = document.createElement('div');
+            modal.className = 'hotkey-modal';
+            modal.innerHTML = `
                 <div class="hotkey-modal-content">
                     <h3><i class="fas fa-keyboard"></i> Гарячі клавіші</h3>
                     <div class="hotkey-list">
@@ -326,10 +172,104 @@
                     <button class="close-hotkey-btn">Зрозуміло</button>
                 </div>
             `;
-            document.body.appendChild(modalDiv);
-            const closeBtn = modalDiv.querySelector('.close-hotkey-btn');
-            closeBtn.onclick = () => modalDiv.remove();
-            modalDiv.onclick = (e) => { if (e.target === modalDiv) modalDiv.remove(); };
+            document.body.appendChild(modal);
+            const closeBtn = modal.querySelector('.close-hotkey-btn');
+            closeBtn.onclick = () => modal.remove();
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        });
+    }
+
+    // ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД СТОРІНОК ==========
+    let currentModal = null;
+    let currentPreviewFileIndex = null;
+
+    function createModal() {
+        if (currentModal) return currentModal;
+        const modalDiv = document.createElement('div');
+        modalDiv.className = 'pages-modal';
+        modalDiv.innerHTML = `
+            <div class="pages-modal-content">
+                <div class="pages-modal-header">
+                    <h3>📄 Сторінки PDF</h3>
+                    <button class="close-modal-btn">&times;</button>
+                </div>
+                <div class="pages-grid-modal" id="modalPagesGrid"></div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+        const closeBtn = modalDiv.querySelector('.close-modal-btn');
+        closeBtn.addEventListener('click', closeModal);
+        modalDiv.addEventListener('click', (e) => {
+            if (e.target === modalDiv) closeModal();
+        });
+        currentModal = modalDiv;
+        return modalDiv;
+    }
+
+    function closeModal() {
+        if (currentModal) {
+            currentModal.classList.remove('active');
+            currentPreviewFileIndex = null;
+        }
+    }
+
+    async function showPagePreview(index) {
+        const fileItem = selectedFiles[index];
+        if (!fileItem) return;
+        currentPreviewFileIndex = index;
+
+        const modal = createModal();
+        const grid = modal.querySelector('#modalPagesGrid');
+        grid.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Завантаження сторінок...</div>';
+        modal.classList.add('active');
+
+        // Якщо вже згенеровані мініатюри всіх сторінок – використати
+        if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
+            renderPageThumbnails(grid, fileItem.allThumbnails);
+            return;
+        }
+
+        // Інакше – генеруємо
+        try {
+            const arrayBuffer = await fileItem.file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const thumbnails = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 0.3 }); // менший масштаб для економії
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                thumbnails.push(canvas.toDataURL());
+            }
+            fileItem.allThumbnails = thumbnails; // кешуємо
+            renderPageThumbnails(grid, thumbnails);
+        } catch (err) {
+            grid.innerHTML = `<div style="text-align:center; padding:40px; color:red;">❌ Помилка завантаження: ${err.message}</div>`;
+        }
+    }
+
+    function renderPageThumbnails(container, thumbnails) {
+        container.innerHTML = '';
+        thumbnails.forEach((thumbUrl, idx) => {
+            const card = document.createElement('div');
+            card.className = 'modal-page-card';
+            const canvas = document.createElement('canvas');
+            const img = new Image();
+            img.src = thumbUrl;
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+            };
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            const span = document.createElement('span');
+            span.innerText = `Стор. ${idx + 1}`;
+            card.appendChild(canvas);
+            card.appendChild(span);
+            container.appendChild(card);
         });
     }
 
@@ -407,189 +347,94 @@
         if (checkbox) checkbox.checked = isSelected;
     }
 
-    // ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД СТОРІНОК ==========
-    async function showPagePreview(index) {
-    const fileItem = selectedFiles[index];
-    if (!fileItem) return;
-
-    // Заповнюємо заголовок
-    const fileNameSpan = document.getElementById('modalFileName');
-    const fileStatsSpan = document.getElementById('modalFileStats');
-    if (fileNameSpan) fileNameSpan.innerText = fileItem.name;
-    if (fileStatsSpan) {
-        const sizeMB = (fileItem.size / (1024 * 1024)).toFixed(2);
-        fileStatsSpan.innerText = `${fileItem.pageCount} стор. • ${sizeMB} MB`;
-    }
-
-    const modal = document.getElementById('pagePreviewModal');
-    const modalGrid = document.getElementById('modalPagesGrid');
-    modalGrid.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Завантаження сторінок...</div>';
-    modal.classList.add('active');
-
-    if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
-        renderPageThumbnails(fileItem.allThumbnails);
-        return;
-    }
-
-    try {
-        const arrayBuffer = await fileItem.file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const thumbnails = [];
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 0.3 });
-            const canvas = document.createElement('canvas');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-            thumbnails.push(canvas.toDataURL());
-        }
-        fileItem.allThumbnails = thumbnails;
-        renderPageThumbnails(thumbnails);
-    } catch (err) {
-        modalGrid.innerHTML = `<div style="text-align:center; padding:40px; color:red;">❌ Помилка завантаження: ${err.message}</div>`;
-    }
-}
-
-    function renderPageThumbnails(thumbnails) {
-        modalGrid.innerHTML = '';
-        thumbnails.forEach((thumbUrl, idx) => {
-            const card = document.createElement('div');
-            card.className = 'modal-page-card';
-            const canvas = document.createElement('canvas');
-            const img = new Image();
-            img.src = thumbUrl;
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                canvas.getContext('2d').drawImage(img, 0, 0);
-            };
-            canvas.style.width = '100%';
-            canvas.style.height = 'auto';
-            const span = document.createElement('span');
-            span.innerText = `Стор. ${idx + 1}`;
-            card.appendChild(canvas);
-            card.appendChild(span);
-            modalGrid.appendChild(card);
-        });
-    }
-
     // ========== СТВОРЕННЯ КАРТКИ ==========
     function createCardElement(data, index) {
-    const card = document.createElement('div');
-    card.className = 'file-card';
-    if (selectedIndices.has(index)) card.classList.add('selected');
-    card.setAttribute('data-index', index);
+        const card = document.createElement('div');
+        card.className = 'file-card';
+        if (selectedIndices.has(index)) card.classList.add('selected');
+        card.setAttribute('data-index', index);
 
-    // Чекбокс
-    const chkDiv = document.createElement('div');
-    chkDiv.className = 'file-card-checkbox';
-    const chk = document.createElement('input');
-    chk.type = 'checkbox';
-    chk.checked = selectedIndices.has(index);
-    chk.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const currentCard = e.target.closest('.file-card');
-        const idx = parseInt(currentCard.getAttribute('data-index'), 10);
-        toggleFileSelection(idx, e);
-    });
-    const span = document.createElement('span');
-    span.className = 'checkmark';
-    chkDiv.appendChild(chk);
-    chkDiv.appendChild(span);
-    card.appendChild(chkDiv);
+        const chkDiv = document.createElement('div');
+        chkDiv.className = 'file-card-checkbox';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = selectedIndices.has(index);
+        chk.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const currentCard = e.target.closest('.file-card');
+            const idx = parseInt(currentCard.getAttribute('data-index'), 10);
+            toggleFileSelection(idx, e);
+        });
+        const span = document.createElement('span');
+        span.className = 'checkmark';
+        chkDiv.appendChild(chk);
+        chkDiv.appendChild(span);
+        card.appendChild(chkDiv);
 
-    // Підказка
-    const tooltip = document.createElement('div');
-    tooltip.className = 'file-tooltip';
-    const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
-    tooltip.innerText = `${sizeMB} MB • ${data.pageCount} стор.`;
-    card.appendChild(tooltip);
+        const tooltip = document.createElement('div');
+        tooltip.className = 'file-tooltip';
+        const sizeMB = (data.size / (1024 * 1024)).toFixed(2);
+        tooltip.innerText = `${sizeMB} MB • ${data.pageCount} стор.`;
+        card.appendChild(tooltip);
 
-    // Ручка перетягування
-    const dragHandle = document.createElement('div');
-    dragHandle.className = 'drag-handle';
-    dragHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
-    card.appendChild(dragHandle);
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
+        dragHandle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+        card.appendChild(dragHandle);
 
-    // Кнопки дій
-    const actions = document.createElement('div');
-    actions.className = 'file__actions';
+        const actions = document.createElement('div');
+        actions.className = 'file__actions';
+        const rotateBtn = document.createElement('a');
+        rotateBtn.className = 'file__btn rotate';
+        rotateBtn.innerHTML = '<i class="fas fa-undo-alt"></i>';
+        rotateBtn.href = 'javascript:;';
+        rotateBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const currentCard = e.target.closest('.file-card');
+            const idx = parseInt(currentCard.getAttribute('data-index'), 10);
+            await rotateFileAtIndex(idx);
+        };
+        const removeBtn = document.createElement('a');
+        removeBtn.className = 'file__btn remove';
+        removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        removeBtn.href = 'javascript:;';
+        removeBtn.onclick = async (e) => {
+            e.stopPropagation();
+            const currentCard = e.target.closest('.file-card');
+            const idx = parseInt(currentCard.getAttribute('data-index'), 10);
+            await removeFile(idx);
+        };
+        actions.appendChild(rotateBtn);
+        actions.appendChild(removeBtn);
+        card.appendChild(actions);
 
-    // Кнопка попереднього перегляду 👁️
-    const previewBtn = document.createElement('a');
-    previewBtn.className = 'file__btn preview';
-    previewBtn.innerHTML = '<i class="fas fa-eye"></i>';
-    previewBtn.href = 'javascript:;';
-    previewBtn.title = 'Попередній перегляд сторінок';
-    previewBtn.onclick = async (e) => {
-        e.stopPropagation();
-        const currentCard = e.target.closest('.file-card');
-        const idx = parseInt(currentCard.getAttribute('data-index'), 10);
-        await showPagePreview(idx);
-    };
+        const canvas = document.createElement('canvas');
+        const img = new Image();
+        img.src = data.thumbnailUrl;
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+        };
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        card.appendChild(canvas);
 
-    // Кнопка повороту
-    const rotateBtn = document.createElement('a');
-    rotateBtn.className = 'file__btn rotate';
-    rotateBtn.innerHTML = '<i class="fas fa-undo-alt"></i>';
-    rotateBtn.href = 'javascript:;';
-    rotateBtn.title = 'Повернути на 90°';
-    rotateBtn.onclick = async (e) => {
-        e.stopPropagation();
-        const currentCard = e.target.closest('.file-card');
-        const idx = parseInt(currentCard.getAttribute('data-index'), 10);
-        await rotateFileAtIndex(idx);
-    };
+        const nameSpan = document.createElement('div');
+        nameSpan.className = 'file__info__name';
+        let displayName = data.name;
+        if (displayName.length > 25) displayName = displayName.slice(0, 22) + '...';
+        nameSpan.innerText = displayName;
+        card.appendChild(nameSpan);
 
-    // Кнопка видалення
-    const removeBtn = document.createElement('a');
-    removeBtn.className = 'file__btn remove';
-    removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-    removeBtn.href = 'javascript:;';
-    removeBtn.title = 'Видалити файл';
-    removeBtn.onclick = async (e) => {
-        e.stopPropagation();
-        const currentCard = e.target.closest('.file-card');
-        const idx = parseInt(currentCard.getAttribute('data-index'), 10);
-        await removeFile(idx);
-    };
-
-    actions.appendChild(previewBtn);
-    actions.appendChild(rotateBtn);
-    actions.appendChild(removeBtn);
-    card.appendChild(actions);
-
-    // Мініатюра
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    img.src = data.thumbnailUrl;
-    img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-    };
-    canvas.style.width = '100%';
-    canvas.style.height = 'auto';
-    card.appendChild(canvas);
-
-    // Назва файлу
-    const nameSpan = document.createElement('div');
-    nameSpan.className = 'file__info__name';
-    let displayName = data.name;
-    if (displayName.length > 25) displayName = displayName.slice(0, 22) + '...';
-    nameSpan.innerText = displayName;
-    card.appendChild(nameSpan);
-
-    // Клік по картці – виділення (як було раніше)
-    card.addEventListener('click', (e) => {
-        if (e.target.closest('.file__btn') || e.target.closest('.drag-handle') || e.target.closest('.file-card-checkbox')) return;
-        const idx = parseInt(card.getAttribute('data-index'), 10);
-        toggleFileSelection(idx, e);
-    });
-
-    return card;
-}
+        // ОБРОБНИК КЛІКУ – відкриває ПЕРЕГЛЯД ВСІХ СТОРІНОК
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.file__btn') || e.target.closest('.drag-handle') || e.target.closest('.file-card-checkbox')) return;
+            const idx = parseInt(card.getAttribute('data-index'), 10);
+            showPagePreview(idx);
+        });
+        return card;
+    }
 
     // ========== ПЕРЕМАЛЬОВУВАННЯ СІТКИ ==========
     function renderFilesGrid() {
@@ -1049,5 +894,6 @@
     mergeAllBtn.addEventListener('click', mergeAll);
     rotateSelectedBtn.addEventListener('click', rotateSelected);
 </script>
+<!-- Модальне вікно для перегляду сторінок (створюється динамічно, але для порядку залиште пустий контейнер) -->
 </body>
 </html>
