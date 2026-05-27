@@ -13,6 +13,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
+        .stats-info.warning {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
         .modal-title-info {
     display: flex;
     align-items: center;
@@ -233,6 +238,7 @@
     let selectedFiles = [];
     let selectedIndices = new Set();
     let sortable = null;
+    let wasSizeLimitExceeded = false;
 
     const uploader = document.getElementById('uploader');
     const fileInput = document.getElementById('fileInput');
@@ -253,6 +259,8 @@
     const modal = document.getElementById('pagePreviewModal');
     const modalGrid = document.getElementById('modalPagesGrid');
     const closeModalBtn = modal.querySelector('.close-modal-btn');
+
+    const MAX_TOTAL_SIZE_MB = 100; // ліміт сумарного розміру, можна змінити
 
     function closeModal() {
         modal.classList.remove('active');
@@ -338,21 +346,37 @@
 
     // ========== СТАТИСТИКА ==========
     function updateStats() {
-        const statsDiv = document.getElementById('statsInfo');
-        if (!statsDiv) return;
-        if (selectedFiles.length === 0) {
-            statsDiv.style.display = 'none';
-            return;
+    const statsDiv = document.getElementById('statsInfo');
+    if (!statsDiv) return;
+    if (selectedFiles.length === 0) {
+        statsDiv.style.display = 'none';
+        wasSizeLimitExceeded = false;
+        return;
+    }
+    let totalPages = 0, totalSizeMB = 0;
+    for (let file of selectedFiles) {
+        totalPages += file.pageCount;
+        totalSizeMB += file.size / (1024 * 1024);
+    }
+    document.getElementById('totalFiles').innerText = selectedFiles.length;
+    document.getElementById('totalPages').innerText = totalPages;
+    document.getElementById('totalSize').innerText = totalSizeMB.toFixed(2);
+    statsDiv.style.display = 'block';
+
+    const limitExceeded = totalSizeMB > MAX_TOTAL_SIZE_MB;
+    if (limitExceeded) {
+        statsDiv.classList.add('warning');
+        if (!wasSizeLimitExceeded) {
+            showMessage(`⚠️ Загальний розмір файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${totalSizeMB.toFixed(2)} МБ). Об'єднання заблоковано.`, 'error', 6000);
+            wasSizeLimitExceeded = true;
         }
-        let totalPages = 0, totalSizeMB = 0;
-        for (let file of selectedFiles) {
-            totalPages += file.pageCount;
-            totalSizeMB += file.size / (1024 * 1024);
+    } else {
+        statsDiv.classList.remove('warning');
+        if (wasSizeLimitExceeded) {
+            showMessage(`✅ Загальний розмір повернувся в межу ${MAX_TOTAL_SIZE_MB} МБ. Об'єднання доступне.`, 'success', 4000);
+            wasSizeLimitExceeded = false;
         }
-        document.getElementById('totalFiles').innerText = selectedFiles.length;
-        document.getElementById('totalPages').innerText = totalPages;
-        document.getElementById('totalSize').innerText = totalSizeMB.toFixed(2);
-        statsDiv.style.display = 'block';
+    }
     }
 
     function showMessage(msg, type, duration = 4000) {
@@ -1033,16 +1057,32 @@
         }
     }
 
-    function updateMergeButtons() {
-        const anySelected = selectedIndices.size > 0;
-        const enoughSelected = selectedIndices.size >= 2;
-        mergeSelectedBtn.disabled = !enoughSelected;
-        mergeAllBtn.disabled = selectedFiles.length < 2;
-        deleteSelectedBtn.disabled = !anySelected;
-        clearSelectionBtn.disabled = !anySelected;
-        selectAllBtn.disabled = (selectedIndices.size === selectedFiles.length);
-        rotateSelectedBtn.disabled = !anySelected;
+function updateMergeButtons() {
+    const anySelected = selectedIndices.size > 0;
+    const enoughSelected = selectedIndices.size >= 2;
+
+    // Обчислюємо загальний розмір
+    const totalSizeMB = selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024);
+    const sizeLimitExceeded = totalSizeMB > MAX_TOTAL_SIZE_MB;
+
+    // Оновлюємо стан кнопок
+    mergeSelectedBtn.disabled = !enoughSelected || sizeLimitExceeded;
+    mergeAllBtn.disabled = selectedFiles.length < 2 || sizeLimitExceeded;
+    deleteSelectedBtn.disabled = !anySelected;
+    clearSelectionBtn.disabled = !anySelected;
+    selectAllBtn.disabled = (selectedIndices.size === selectedFiles.length);
+    rotateSelectedBtn.disabled = !anySelected;
+
+    // Підказки для заблокованих кнопок
+    if (sizeLimitExceeded) {
+        const msg = `⚠️ Загальний розмір файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ. Об'єднання неможливе.`;
+        mergeSelectedBtn.title = msg;
+        mergeAllBtn.title = msg;
+    } else {
+        mergeSelectedBtn.title = enoughSelected ? "" : "Виберіть принаймні 2 файли";
+        mergeAllBtn.title = selectedFiles.length >= 2 ? "" : "Додайте принаймні 2 файли";
     }
+}
 
     // ========== ПІДПИСКА НА ПОДІЇ ==========
     uploader.addEventListener('click', (e) => {
