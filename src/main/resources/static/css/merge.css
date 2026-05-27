@@ -549,7 +549,7 @@ body.dark .file-card.selected {
 
 /* ===== СТАТИСТИКА ===== */
 .stats-info {
-    background: var(--stats-bg);
+    /*background: var(--stats-bg);*/
     border-radius: 20px;
     padding: 8px 16px;
     margin-bottom: 16px;

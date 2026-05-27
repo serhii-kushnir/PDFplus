@@ -945,18 +945,7 @@ async function restoreSessionFromIndexedDB() {
     }));
     selectedFiles = restored;
     selectedIndices.clear();
-    // Видаляємо сесію після відновлення, щоб уникнути дублювання
-    const clearTx = db.transaction(STORE_NAME, 'readwrite');
-    const clearStore = clearTx.objectStore(STORE_NAME);
-    await new Promise((resolve, reject) => {
-        const clearReq = clearStore.clear();
-        clearReq.onsuccess = () => resolve();
-        clearReq.onerror = () => reject(clearReq.error);
-    });
-    await new Promise((resolve, reject) => {
-        clearTx.oncomplete = resolve;
-        clearTx.onerror = () => reject(clearTx.error);
-    });
+    // НЕ видаляємо дані! Тільки повертаємо true.
     return true;
 }
 
