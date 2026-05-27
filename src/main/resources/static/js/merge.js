@@ -231,37 +231,73 @@ function updateStats() {
     }
 }
 
+// ========== СТЕК ПОВІДОМЛЕНЬ (без кнопок закриття) ==========
+function getNotificationStack() {
+    let stack = document.getElementById('notificationStack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'notificationStack';
+        stack.className = 'notification-stack';
+        document.body.appendChild(stack);
+    }
+    return stack;
+}
+
+function limitToasts(maxCount = 5) {
+    const stack = getNotificationStack();
+    const toasts = stack.querySelectorAll('.toast-notification:not(.toast-progress)');
+    if (toasts.length > maxCount) {
+        const toRemove = Array.from(toasts).slice(0, toasts.length - maxCount);
+        toRemove.forEach(toast => removeToast(toast));
+    }
+}
+
+function removeToast(toast) {
+    if (!toast.parentNode) return;
+    toast.classList.add('fade-out');
+    const onTransitionEnd = () => {
+        if (toast.parentNode) toast.remove();
+        toast.removeEventListener('transitionend', onTransitionEnd);
+    };
+    toast.addEventListener('transitionend', onTransitionEnd);
+    // fallback: якщо transitionend не спрацював, видалити через 500ms
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 500);
+}
+
 function showMessage(msg, type, duration = 4000) {
-    const existingToasts = document.querySelectorAll('.toast-notification:not(.toast-progress)');
-    existingToasts.forEach(toast => toast.remove());
+    const stack = getNotificationStack();
     const toast = document.createElement('div');
     toast.className = `toast-notification toast-${type}`;
     const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : (type === 'info' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-check-circle"></i>');
-    toast.innerHTML = `${icon}<span>${msg}</span><button class="toast-close">×</button>`;
-    const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.addEventListener('click', () => {
-        toast.classList.add('fade-out');
-        setTimeout(() => toast.remove(), 400);
-    });
-    document.body.appendChild(toast);
+    toast.innerHTML = `${icon}<span>${msg}</span>`;
+    stack.appendChild(toast);
+
+    // Обмежуємо кількість тостів (видаляємо старі)
+    limitToasts(5);
+
     let timeout = setTimeout(() => {
-        toast.classList.add('fade-out');
-        setTimeout(() => toast.remove(), 400);
+        removeToast(toast);
     }, duration);
+
     toast.addEventListener('mouseenter', () => clearTimeout(timeout));
     toast.addEventListener('mouseleave', () => {
         timeout = setTimeout(() => {
-            toast.classList.add('fade-out');
-            setTimeout(() => toast.remove(), 400);
+            removeToast(toast);
         }, duration);
     });
 }
 
+
+
 // ========== ПРОГРЕС-ТОСТ ==========
 function showProgressToast(title, total) {
+    // Видаляємо попередній прогрес-тост
     const existingProgressToast = document.querySelector('.toast-progress');
-    if (existingProgressToast) existingProgressToast.remove();
+    if (existingProgressToast) removeToast(existingProgressToast);
 
+    const stack = getNotificationStack();
     const toast = document.createElement('div');
     toast.className = 'toast-notification toast-progress';
     toast.innerHTML = `
@@ -273,12 +309,8 @@ function showProgressToast(title, total) {
             </div>
             <div class="toast-progress-text" style="font-size: 0.75rem;">0 / ${total}</div>
         </div>
-        <button class="toast-close-progress" style="background: none; border: none; cursor: pointer; opacity: 0.6;">&times;</button>
     `;
-    document.body.appendChild(toast);
-
-    const closeBtn = toast.querySelector('.toast-close-progress');
-    closeBtn.addEventListener('click', () => toast.remove());
+    stack.appendChild(toast);
 
     function update(current, message) {
         const percent = (current / total) * 100;
@@ -293,8 +325,7 @@ function showProgressToast(title, total) {
                 icon.style.color = '#10b981';
             }
             setTimeout(() => {
-                toast.classList.add('fade-out');
-                setTimeout(() => toast.remove(), 400);
+                removeToast(toast);
             }, 1500);
         }
     }
