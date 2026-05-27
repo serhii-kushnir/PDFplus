@@ -32,7 +32,7 @@ function openDB() {
 
 async function saveSessionToIndexedDB() {
     if (!db) await openDB();
-    // 1. Підготуємо дані за межами транзакції (щоб уникнути асинхронності всередині)
+    // Збираємо дані перед транзакцією
     const itemsToStore = [];
     for (let i = 0; i < selectedFiles.length; i++) {
         const item = selectedFiles[i];
@@ -48,51 +48,53 @@ async function saveSessionToIndexedDB() {
         });
     }
     if (itemsToStore.length === 0) return;
-
-    // 2. Відкриваємо транзакцію
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-
-    // 3. Очищення сховища
+    // Очищення
     await new Promise((resolve, reject) => {
         const clearReq = store.clear();
         clearReq.onsuccess = () => resolve();
         clearReq.onerror = () => reject(clearReq.error);
     });
-
-    // 4. Запис усіх елементів
-    const putPromises = itemsToStore.map(item => {
-        return new Promise((resolve, reject) => {
+    // Запис
+    for (const item of itemsToStore) {
+        await new Promise((resolve, reject) => {
             const putReq = store.put(item);
             putReq.onsuccess = () => resolve();
             putReq.onerror = () => reject(putReq.error);
         });
-    });
-    await Promise.all(putPromises);
-
-    // 5. Дочекаємося завершення транзакції
+    }
     await new Promise((resolve, reject) => {
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
     });
 }
 
-
-function openDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
+async function restoreSessionFromIndexedDB() {
+    if (!db) await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const items = await new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            db = request.result;
-            resolve(db);
-        };
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-            }
-        };
     });
+    if (items.length === 0) return false;
+    const restored = await Promise.all(items.map(async (item) => {
+        const file = new File([item.fileBlob], item.name, { type: 'application/pdf' });
+        return {
+            file: file,
+            name: item.name,
+            size: item.size,
+            pageCount: item.pageCount,
+            thumbnailUrl: item.thumbnailUrl,
+            allThumbnails: null
+        };
+    }));
+    selectedFiles = restored;
+    selectedIndices.clear();
+    // НЕ видаляємо дані! Сесія залишається.
+    return true;
 }
 
 // DOM elements
@@ -123,7 +125,7 @@ function closeModal() {
 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-// Keyboard shortcuts
+// ========== ГАРЯЧІ КЛАВІШІ ==========
 document.addEventListener('keydown', (e) => {
     const activeConfirm = document.querySelector('.confirm-overlay');
     if (activeConfirm) {
@@ -164,7 +166,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Hotkey info modal
+// ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
 const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
 if (hotkeyBtn) {
     hotkeyBtn.addEventListener('click', () => {
@@ -195,6 +197,7 @@ if (hotkeyBtn) {
     });
 }
 
+// ========== СТАТИСТИКА ТА ПОВІДОМЛЕННЯ ==========
 function updateStats() {
     const statsDiv = document.getElementById('statsInfo');
     if (!statsDiv) return;
@@ -228,20 +231,108 @@ function updateStats() {
     }
 }
 
+// ========== СТЕК ПОВІДОМЛЕНЬ (без кнопок закриття) ==========
+function getNotificationStack() {
+    let stack = document.getElementById('notificationStack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'notificationStack';
+        stack.className = 'notification-stack';
+        document.body.appendChild(stack);
+    }
+    return stack;
+}
+
+function limitToasts(maxCount = 5) {
+    const stack = getNotificationStack();
+    const toasts = stack.querySelectorAll('.toast-notification:not(.toast-progress)');
+    if (toasts.length > maxCount) {
+        const toRemove = Array.from(toasts).slice(0, toasts.length - maxCount);
+        toRemove.forEach(toast => removeToast(toast));
+    }
+}
+
+function removeToast(toast) {
+    if (!toast.parentNode) return;
+    toast.classList.add('fade-out');
+    const onTransitionEnd = () => {
+        if (toast.parentNode) toast.remove();
+        toast.removeEventListener('transitionend', onTransitionEnd);
+    };
+    toast.addEventListener('transitionend', onTransitionEnd);
+    // fallback: якщо transitionend не спрацював, видалити через 500ms
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 500);
+}
+
 function showMessage(msg, type, duration = 4000) {
-    const existingToasts = document.querySelectorAll('.toast-notification');
-    existingToasts.forEach(toast => toast.remove());
+    const stack = getNotificationStack();
     const toast = document.createElement('div');
     toast.className = `toast-notification toast-${type}`;
     const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : (type === 'info' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-check-circle"></i>');
     toast.innerHTML = `${icon}<span>${msg}</span>`;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('fade-out');
-        setTimeout(() => toast.remove(), 400);
+    stack.appendChild(toast);
+
+    // Обмежуємо кількість тостів (видаляємо старі)
+    limitToasts(5);
+
+    let timeout = setTimeout(() => {
+        removeToast(toast);
     }, duration);
+
+    toast.addEventListener('mouseenter', () => clearTimeout(timeout));
+    toast.addEventListener('mouseleave', () => {
+        timeout = setTimeout(() => {
+            removeToast(toast);
+        }, duration);
+    });
 }
 
+
+
+// ========== ПРОГРЕС-ТОСТ ==========
+function showProgressToast(title, total) {
+    // Видаляємо попередній прогрес-тост
+    const existingProgressToast = document.querySelector('.toast-progress');
+    if (existingProgressToast) removeToast(existingProgressToast);
+
+    const stack = getNotificationStack();
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification toast-progress';
+    toast.innerHTML = `
+        <i class="fas fa-spinner fa-pulse"></i>
+        <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 6px;">${title}</div>
+            <div class="progress-bar-container" style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 6px 0;">
+                <div class="progress-bar-fill" style="width: 0%; height: 100%; background: #e74c3c; transition: width 0.2s;"></div>
+            </div>
+            <div class="toast-progress-text" style="font-size: 0.75rem;">0 / ${total}</div>
+        </div>
+    `;
+    stack.appendChild(toast);
+
+    function update(current, message) {
+        const percent = (current / total) * 100;
+        const fill = toast.querySelector('.progress-bar-fill');
+        if (fill) fill.style.width = `${percent}%`;
+        const textDiv = toast.querySelector('.toast-progress-text');
+        if (textDiv) textDiv.innerText = message || `${current} / ${total}`;
+        if (current === total) {
+            const icon = toast.querySelector('i');
+            if (icon) {
+                icon.className = 'fas fa-check-circle';
+                icon.style.color = '#10b981';
+            }
+            setTimeout(() => {
+                removeToast(toast);
+            }, 1500);
+        }
+    }
+    return { update };
+}
+
+// ========== ДОПОМІЖНІ ФУНКЦІЇ PDF ==========
 async function generateThumbnail(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -285,6 +376,7 @@ function updateCardSelectionState(card, isSelected) {
     if (checkbox) checkbox.checked = isSelected;
 }
 
+// ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД ==========
 async function showPagePreview(index) {
     const fileItem = selectedFiles[index];
     if (!fileItem) return;
@@ -293,7 +385,6 @@ async function showPagePreview(index) {
     const sizeMB = (fileItem.size / (1024 * 1024)).toFixed(2);
     document.getElementById('modalFileStats').innerText = `${fileItem.pageCount} стор. • ${sizeMB} MB`;
 
-    // Показуємо прогрес-контейнер замість простого лоадера
     modalGrid.style.display = 'flex';
     modalGrid.style.flexDirection = 'column';
     modalGrid.style.justifyContent = 'center';
@@ -317,7 +408,6 @@ async function showPagePreview(index) {
         const arrayBuffer = await fileItem.file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const thumbnails = [];
-
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const viewport = page.getViewport({ scale: 0.3 });
@@ -326,17 +416,12 @@ async function showPagePreview(index) {
             canvas.height = viewport.height;
             await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
             thumbnails.push(canvas.toDataURL());
-
-            // Оновлюємо прогрес
             const percent = (i / pdf.numPages) * 100;
             const progressBar = modalGrid.querySelector('.progress-bar-modal');
             if (progressBar) progressBar.style.width = `${percent}%`;
-
-            // Ось сюди вставте новий рядок:
             const progressText = document.getElementById('modalProgressText');
             if (progressText) progressText.innerText = `Оброблено сторінок ${i} з ${pdf.numPages} (${Math.round(percent)}%)`;
         }
-
         fileItem.allThumbnails = thumbnails;
         renderPageThumbnails(thumbnails);
     } catch (err) {
@@ -352,7 +437,6 @@ function renderPageThumbnails(thumbnails) {
     modalGrid.style.alignItems = '';
     modalGrid.style.minHeight = '';
     modalGrid.innerHTML = '';
-
     thumbnails.forEach((thumbUrl, idx) => {
         const card = document.createElement('div');
         card.className = 'modal-page-card';
@@ -374,6 +458,7 @@ function renderPageThumbnails(thumbnails) {
     });
 }
 
+// ========== СТВОРЕННЯ КАРТКИ ==========
 function createCardElement(data, index) {
     const card = document.createElement('div');
     card.className = 'file-card';
@@ -498,14 +583,21 @@ function initSortable() {
     if (!filesContainer) return;
     sortable = new Sortable(filesContainer, {
         animation: 200,
-        onEnd: async function() {
+        onEnd: async function(evt) {
+            // Отримуємо перетягнутий DOM-елемент
+            const draggedItem = evt.item;
+            // Отримуємо старий індекс з атрибута data-index (до зміни порядку)
+            const oldIdx = parseInt(draggedItem.getAttribute('data-index'), 10);
+            // Назва файлу
+            const fileName = selectedFiles[oldIdx]?.name || 'файл';
+
             const cards = filesContainer.querySelectorAll('.file-card');
             const newSelectedFiles = [];
             const newSelectedIndices = new Set();
             cards.forEach((card, newIdx) => {
-                const oldIdx = parseInt(card.getAttribute('data-index'), 10);
-                newSelectedFiles.push(selectedFiles[oldIdx]);
-                if (selectedIndices.has(oldIdx)) {
+                const oldIdxCard = parseInt(card.getAttribute('data-index'), 10);
+                newSelectedFiles.push(selectedFiles[oldIdxCard]);
+                if (selectedIndices.has(oldIdxCard)) {
                     newSelectedIndices.add(newIdx);
                 }
             });
@@ -515,38 +607,24 @@ function initSortable() {
                 card.setAttribute('data-index', newIdx);
             });
             updateMergeButtons();
-            showMessage('📌 Порядок файлів змінено', 'success', 3000);
+            showMessage(`📌 Файл "${fileName}" переміщено`, 'success', 3000);
             await saveSessionToIndexedDB();
         }
     });
 }
 
+// ========== ОСНОВНІ ОПЕРАЦІЇ (з прогрес-тостами) ==========
 async function addFiles(newFiles) {
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.className = 'loading-overlay';
-    loadingOverlay.innerHTML = `
-        <div class="loading-spinner">
-            <div class="loader"></div>
-            <div class="progress-text">
-                <p id="loadingStatus">Підготовка файлів...</p>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" id="loadingProgressBar"></div>
-                </div>
-                <p id="loadingCounter">0 / ${newFiles.length} файлів</p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(loadingOverlay);
-    let added = 0, processed = 0;
-    const totalFiles = newFiles.length;
-    const loadingStatus = document.getElementById('loadingStatus');
-    const loadingCounter = document.getElementById('loadingCounter');
-    const loadingProgressBar = document.getElementById('loadingProgressBar');
-    for (const file of newFiles) {
-        processed++;
-        const percent = (processed / totalFiles) * 100;
-        loadingProgressBar.style.width = `${percent}%`;
-        loadingCounter.innerText = `Завантажено ${processed} з ${totalFiles} файлів`;
+    const total = newFiles.length;
+    const progress = showProgressToast('Додавання файлів', total);
+    progress.update(0, 'Перевірка файлів...');
+
+    let added = 0;
+    for (let i = 0; i < total; i++) {
+        const file = newFiles[i];
+        progress.update(i, `Обробка ${i+1} з ${total}: ${file.name}`);
+
+        // Перевірки розміру, типу, сигнатури, дублікатів...
         if (file.size > MAX_FILE_SIZE_BYTES) {
             showMessage(`❌ Файл "${file.name}" перевищує ліміт ${MAX_FILE_SIZE_MB} МБ (${(file.size / (1024 * 1024)).toFixed(2)} МБ)`, 'error', 5000);
             continue;
@@ -569,28 +647,42 @@ async function addFiles(newFiles) {
             showMessage(`Файл "${file.name}" вже доданий`, 'error');
             continue;
         }
-        loadingStatus.innerText = `Обробка: ${file.name}`;
+
         try {
             const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
-            selectedFiles.push({ file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null });
+            const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
+            const newIndex = selectedFiles.length;
+            selectedFiles.push(newFileData);
+
+            // Перший файл – повний рендер (показуємо сітку та верхню панель)
+            if (selectedFiles.length === 1) {
+                uploader.style.display = 'none';
+                filesContainer.style.display = 'flex';
+                topSidebar.style.display = 'flex';
+                renderFilesGrid(); // викликає initSortable()
+            } else {
+                // Додаємо нову картку в кінець контейнера
+                const newCard = createCardElement(newFileData, newIndex);
+                filesContainer.appendChild(newCard);
+
+                // ОНОВЛЮЄМО АТРИБУТИ data-index для ВСІХ карток (порядок міг змінитися? Він не змінився, але ми просто оновимо)
+                const allCards = filesContainer.querySelectorAll('.file-card');
+                allCards.forEach((card, idx) => {
+                    card.setAttribute('data-index', idx);
+                });
+
+                // Оновлюємо статистику, кнопки та зберігаємо сесію
+                updateStats();
+                updateMergeButtons();
+            }
             added++;
+            progress.update(added, `Додано ${added} з ${total} файлів`);
         } catch (err) {
             showMessage(`❌ ${err.message || 'Помилка обробки'} для файлу "${file.name}"`, 'error');
         }
     }
-    loadingOverlay.remove();
-    if (added > 0) {
-        if (selectedFiles.length > 0) {
-            uploader.style.display = 'none';
-            filesContainer.style.display = 'flex';
-            topSidebar.style.display = 'flex';
-        }
-        renderFilesGrid();
-        updateMergeButtons();
-        updateStats();
-        showMessage(added === 1 ? `Додано ${added} файл` : `Додано ${added} файли`, 'success');
-        await saveSessionToIndexedDB();
-    }
+    progress.update(total, `Готово! Додано ${added} файлів.`);
+    await saveSessionToIndexedDB();
 }
 
 async function removeFile(index) {
@@ -643,26 +735,20 @@ async function deleteSelected() {
         cancelText: 'Скасувати'
     });
     if (!confirmed) return;
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.className = 'loading-overlay';
-    loadingOverlay.innerHTML = `<div class="loading-spinner"><div class="loader"></div><div class="progress-text"><p id="deleteStatus">Видалення файлів...</p><div class="progress-bar-container"><div class="progress-bar-fill" id="deleteProgressBar"></div></div><p id="deleteCounter">0 / ${fileCount} файлів</p></div></div>`;
-    document.body.appendChild(loadingOverlay);
-    const deleteStatus = document.getElementById('deleteStatus');
-    const deleteCounter = document.getElementById('deleteCounter');
-    const deleteProgressBar = document.getElementById('deleteProgressBar');
+
+    const progress = showProgressToast('Видалення файлів', fileCount);
+    progress.update(0, 'Підготовка...');
+
     const indices = Array.from(selectedIndices).sort((a,b) => b - a);
-    let processed = 0;
-    for (let idx of indices) {
-        processed++;
-        const percent = (processed / fileCount) * 100;
-        deleteProgressBar.style.width = `${percent}%`;
-        deleteCounter.innerText = `Видалено ${processed} з ${fileCount} файлів`;
-        const fileName = selectedFiles[idx]?.name || 'файл';
-        deleteStatus.innerText = `Видалення: ${fileName.length > 40 ? fileName.substring(0,37)+'...' : fileName}`;
+    for (let i = 0; i < indices.length; i++) {
+        const idx = indices[i];
+        progress.update(i+1, `Видалення ${i+1} з ${fileCount}: ${selectedFiles[idx]?.name || 'файл'}`);
         selectedFiles.splice(idx, 1);
+        await new Promise(r => setTimeout(r, 50));
     }
     selectedIndices.clear();
-    loadingOverlay.remove();
+    progress.update(fileCount, `Видалено ${fileCount} файлів.`);
+
     if (selectedFiles.length === 0) {
         uploader.style.display = 'block';
         filesContainer.style.display = 'none';
@@ -671,8 +757,8 @@ async function deleteSelected() {
     renderFilesGrid();
     updateMergeButtons();
     updateStats();
-    showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
     await saveSessionToIndexedDB();
+    showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
 }
 
 function showConfirm(options) {
@@ -753,23 +839,16 @@ async function rotateSelected() {
         cancelText: 'Скасувати'
     });
     if (!confirmed) return;
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.className = 'loading-overlay';
-    loadingOverlay.innerHTML = `<div class="loading-spinner"><div class="loader"></div><div class="progress-text"><p id="rotateStatus">Поворот файлів...</p><div class="progress-bar-container"><div class="progress-bar-fill" id="rotateProgressBar"></div></div><p id="rotateCounter">0 / ${fileCount} файлів</p></div></div>`;
-    document.body.appendChild(loadingOverlay);
-    const rotateStatus = document.getElementById('rotateStatus');
-    const rotateCounter = document.getElementById('rotateCounter');
-    const rotateProgressBar = document.getElementById('rotateProgressBar');
+
+    const progress = showProgressToast('Обертання файлів', fileCount);
+    progress.update(0, 'Підготовка...');
     rotateSelectedBtn.disabled = true;
+
     const indices = Array.from(selectedIndices).sort((a,b)=>a-b);
-    let successCount = 0, processed = 0;
-    for (let idx of indices) {
-        processed++;
-        const percent = (processed / fileCount) * 100;
-        rotateProgressBar.style.width = `${percent}%`;
-        rotateCounter.innerText = `Оброблено ${processed} з ${fileCount} файлів`;
-        const fileName = selectedFiles[idx].name;
-        rotateStatus.innerText = `Поворот: ${fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName}`;
+    let successCount = 0;
+    for (let i = 0; i < indices.length; i++) {
+        const idx = indices[i];
+        progress.update(i, `Обробка ${i+1} з ${fileCount}: ${selectedFiles[idx].name}`);
         try {
             const rotatedFile = await rotateFile(selectedFiles[idx].file, 90);
             const newData = await generateThumbnail(rotatedFile);
@@ -780,11 +859,11 @@ async function rotateSelected() {
             showMessage(`❌ Помилка повороту файлу "${selectedFiles[idx].name}": ${err.message}`, 'error');
         }
     }
-    loadingOverlay.remove();
+    progress.update(fileCount, `Завершено. Повернуто ${successCount} файлів.`);
     updateStats();
     rotateSelectedBtn.disabled = false;
-    if (successCount > 0) showMessage(`✅ Повернуто ${successCount} з ${fileCount} файлів`, 'success');
     await saveSessionToIndexedDB();
+    if (successCount > 0) showMessage(`✅ Повернуто ${successCount} з ${fileCount} файлів`, 'success');
 }
 
 function toggleFileSelection(index, event) {
@@ -877,32 +956,20 @@ async function mergeAll() {
 
 async function performMerge(files, filename, btn, fileCount) {
     btn.disabled = true;
-    const loadingOverlay = document.createElement('div');
-    loadingOverlay.className = 'loading-overlay';
-    loadingOverlay.innerHTML = `<div class="loading-spinner"><div class="loader"></div><div class="progress-text"><p id="mergeStatus">Об'єднання файлів...</p><div class="progress-bar-container"><div class="progress-bar-fill" id="mergeProgressBar"></div></div><p id="mergeCounter">0 / ${fileCount} файлів</p></div></div>`;
-    document.body.appendChild(loadingOverlay);
-    const mergeStatus = document.getElementById('mergeStatus');
-    const mergeCounter = document.getElementById('mergeCounter');
-    const mergeProgressBar = document.getElementById('mergeProgressBar');
-    progressContainer.style.display = 'block';
-    progressBar.style.width = '0%';
-    let processed = 0;
-    const updateProgress = () => {
-        processed++;
-        const percent = (processed / fileCount) * 100;
-        if (mergeProgressBar) mergeProgressBar.style.width = `${percent}%`;
-        if (mergeCounter) mergeCounter.innerText = `Файлів оброблено: ${processed} з ${fileCount}`;
-        progressBar.style.width = `${percent}%`;
-        if (mergeStatus) mergeStatus.innerText = `Об'єднання... ${processed} / ${fileCount}`;
-    };
+    const progress = showProgressToast('Обʼєднання PDF', fileCount);
+    progress.update(0, 'Підготовка...');
+
     const formData = new FormData();
-    for (let file of files) { formData.append('files', file); updateProgress(); await new Promise(r => setTimeout(r, 50)); }
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+        progress.update(i+1, `Додано файл ${i+1} з ${fileCount}`);
+        await new Promise(r => setTimeout(r, 50));
+    }
+    progress.update(fileCount, 'Надсилання на сервер...');
+
     try {
         const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
         if (response.ok) {
-            if (mergeProgressBar) mergeProgressBar.style.width = '100%';
-            progressBar.style.width = '100%';
-            mergeStatus.innerText = 'Завантаження результату...';
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -910,46 +977,17 @@ async function performMerge(files, filename, btn, fileCount) {
             a.download = filename;
             a.click();
             URL.revokeObjectURL(url);
-            loadingOverlay.remove();
             showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
             await saveSessionToIndexedDB();
         } else throw new Error(await response.text() || 'Помилка сервера');
     } catch (err) {
-        loadingOverlay.remove();
         showMessage(`❌ Помилка: ${err.message}`, 'error');
     } finally {
-        setTimeout(() => { progressContainer.style.display = 'none'; btn.disabled = false; }, 1000);
+        btn.disabled = false;
     }
 }
 
-async function restoreSessionFromIndexedDB() {
-    if (!db) await openDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const items = await new Promise((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-    if (items.length === 0) return false;
-    const restored = await Promise.all(items.map(async (item) => {
-        const file = new File([item.fileBlob], item.name, { type: 'application/pdf' });
-        return {
-            file: file,
-            name: item.name,
-            size: item.size,
-            pageCount: item.pageCount,
-            thumbnailUrl: item.thumbnailUrl,
-            allThumbnails: null
-        };
-    }));
-    selectedFiles = restored;
-    selectedIndices.clear();
-    // НЕ видаляємо дані! Тільки повертаємо true.
-    return true;
-}
-
-// Event listeners
+// ========== ПІДПИСКА НА ПОДІЇ ==========
 if (uploader) {
     uploader.addEventListener('click', (e) => {
         if (pickButton && (e.target === pickButton || pickButton.contains(e.target))) return;
@@ -973,7 +1011,7 @@ if (mergeSelectedBtn) mergeSelectedBtn.addEventListener('click', mergeSelected);
 if (mergeAllBtn) mergeAllBtn.addEventListener('click', mergeAll);
 if (rotateSelectedBtn) rotateSelectedBtn.addEventListener('click', rotateSelected);
 
-// Restore session
+// ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
 (async function init() {
     await openDB();
     const restored = await restoreSessionFromIndexedDB();
