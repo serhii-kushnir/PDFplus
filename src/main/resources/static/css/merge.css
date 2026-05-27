@@ -847,6 +847,19 @@ body.dark .loader:before {
 }
 
 /* ===== МОДАЛЬНЕ ВІКНО ГАРЯЧИХ КЛАВІШ ===== */
+.toast-progress {
+    min-width: 320px;
+    background: var(--toast-bg);
+    color: var(--toast-text);
+    border-left-color: #e74c3c;
+}
+.toast-progress .toast-close-progress {
+    color: var(--text-secondary);
+}
+.toast-progress .toast-close-progress:hover {
+    opacity: 1;
+    color: #ef4444;
+}
 .hotkey-modal {
     position: fixed;
     top: 0;
