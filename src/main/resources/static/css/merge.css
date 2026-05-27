@@ -864,7 +864,7 @@ body.dark .loader:before {
     background: var(--bg-card);
     border-radius: 32px;
     padding: 28px;
-    max-width: 500px;
+    max-width: 800px;
     width: 90%;
     box-shadow: 0 20px 35px -12px rgba(0,0,0,0.3);
 }
