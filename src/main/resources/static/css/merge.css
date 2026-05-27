@@ -44,6 +44,7 @@ body {
     --hotkey-bg: #eef2ff;
     --hotkey-border: #cbd5e1;
     --hotkey-color: #1e40af;
+    --hotkey-hover-bg: #d1d5db;  /* замість чорного – м'який сірий */
     --separator-color: #e2e8f0;
     --toast-bg: #ffffff;
     --toast-text: #1f2a3e;
@@ -76,6 +77,7 @@ body.dark {
     --hotkey-bg: #1e293b;
     --hotkey-border: #475569;
     --hotkey-color: #93c5fd;
+    --hotkey-hover-bg: #334155;
     --separator-color: #334155;
     --toast-bg: #1e293b;
     --toast-text: #f1f5f9;
@@ -84,6 +86,25 @@ body.dark {
 }
 
 /* ===== ЗАГАЛЬНІ СТИЛІ ===== */
+
+/* Кнопка гарячих клавіш – фіксовані стилі для обох тем */
+.hotkey-info-btn {
+    background: var(--hotkey-bg, #eef2ff) !important;
+    border: 1px solid var(--hotkey-border, #cbd5e1) !important;
+    color: var(--hotkey-color, #1e40af) !important;
+    border-radius: 40px !important;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+.hotkey-info-btn:hover {
+    background: var(--hotkey-hover-bg, #e2e8f0) !important;
+    transform: translateY(-2px) !important;
+}
 .tool__header {
     text-align: center;
     margin-bottom: 24px;
