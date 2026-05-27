@@ -44,6 +44,7 @@ body {
     --hotkey-bg: #eef2ff;
     --hotkey-border: #cbd5e1;
     --hotkey-color: #1e40af;
+    --hotkey-hover-bg: #d1d5db;  /* замість чорного – м'який сірий */
     --separator-color: #e2e8f0;
     --toast-bg: #ffffff;
     --toast-text: #1f2a3e;
@@ -76,6 +77,7 @@ body.dark {
     --hotkey-bg: #1e293b;
     --hotkey-border: #475569;
     --hotkey-color: #93c5fd;
+    --hotkey-hover-bg: #334155;
     --separator-color: #334155;
     --toast-bg: #1e293b;
     --toast-text: #f1f5f9;
@@ -84,6 +86,49 @@ body.dark {
 }
 
 /* ===== ЗАГАЛЬНІ СТИЛІ ===== */
+/* Спінер у модальному вікні попереднього перегляду */
+.modal-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+}
+.modal-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--progress-bg, #e2e8f0);
+    border-top-color: #e74c3c;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+}
+.modal-loader p {
+    color: var(--text-secondary, #5b6e8c);
+    font-size: 0.9rem;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+/* Кнопка гарячих клавіш – фіксовані стилі для обох тем */
+.hotkey-info-btn {
+    background: var(--hotkey-bg, #eef2ff) !important;
+    border: 1px solid var(--hotkey-border, #cbd5e1) !important;
+    color: var(--hotkey-color, #1e40af) !important;
+    border-radius: 40px !important;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+.hotkey-info-btn:hover {
+    background: var(--hotkey-hover-bg, #e2e8f0) !important;
+    transform: translateY(-2px) !important;
+}
 .tool__header {
     text-align: center;
     margin-bottom: 24px;
@@ -537,6 +582,40 @@ body.dark .file-card.selected {
     opacity: 0;
     transition: visibility 0.2s, opacity 0.2s;
 }
+/* Для кращого вигляду лоадера в модальному вікні */
+.pages-modal .loader {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+}
+body.dark .loader:before,
+body.dark .loader:after {
+    background-color: #1e293b;
+}
+body.dark .loader:before {
+    background: rgba(30, 41, 59, 0.6);
+}
+/* Прогрес-бар у модальному вікні (темна/світла тема) */
+.progress-container-modal {
+    background: var(--progress-bg, #e2e8f0);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px auto 0;
+    width: 80%;
+}
+.progress-bar-modal {
+    background: #e74c3c;
+    width: 0%;
+    height: 6px;
+    border-radius: 3px;
+    transition: width 0.2s linear;
+}
+#modalProgressText {
+    font-size: 0.85rem;
+    margin-top: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+}
 .pages-modal.active {
     visibility: visible;
     opacity: 1;
@@ -546,7 +625,7 @@ body.dark .file-card.selected {
     border-radius: 28px;
     max-width: 90vw;
     max-height: 85vh;
-    width: 900px;
+    width: 80%;
     display: flex;
     flex-direction: column;
     overflow: hidden;

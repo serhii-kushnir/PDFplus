@@ -288,19 +288,36 @@ function updateCardSelectionState(card, isSelected) {
 async function showPagePreview(index) {
     const fileItem = selectedFiles[index];
     if (!fileItem) return;
+
     document.getElementById('modalFileName').innerText = fileItem.name;
     const sizeMB = (fileItem.size / (1024 * 1024)).toFixed(2);
     document.getElementById('modalFileStats').innerText = `${fileItem.pageCount} стор. • ${sizeMB} MB`;
-    modalGrid.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Завантаження сторінок...</div>';
+
+    // Показуємо прогрес-контейнер замість простого лоадера
+    modalGrid.style.display = 'flex';
+    modalGrid.style.flexDirection = 'column';
+    modalGrid.style.justifyContent = 'center';
+    modalGrid.style.alignItems = 'center';
+    modalGrid.style.minHeight = '400px';
+    modalGrid.innerHTML = `
+        <div class="loader"></div>
+        <div class="progress-container-modal" style="width: 80%; margin-top: 20px;">
+            <div class="progress-bar-modal" style="width: 0%; height: 6px; background: #e74c3c; border-radius: 3px;"></div>
+        </div>
+        <p id="modalProgressText" style="margin-top: 12px; color: var(--text-secondary);">Оброблено сторінок: 0 / ${fileItem.pageCount}</p>
+    `;
     modal.classList.add('active');
+
     if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
         renderPageThumbnails(fileItem.allThumbnails);
         return;
     }
+
     try {
         const arrayBuffer = await fileItem.file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const thumbnails = [];
+
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const viewport = page.getViewport({ scale: 0.3 });
@@ -309,16 +326,33 @@ async function showPagePreview(index) {
             canvas.height = viewport.height;
             await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
             thumbnails.push(canvas.toDataURL());
+
+            // Оновлюємо прогрес
+            const percent = (i / pdf.numPages) * 100;
+            const progressBar = modalGrid.querySelector('.progress-bar-modal');
+            if (progressBar) progressBar.style.width = `${percent}%`;
+
+            // Ось сюди вставте новий рядок:
+            const progressText = document.getElementById('modalProgressText');
+            if (progressText) progressText.innerText = `Оброблено сторінок ${i} з ${pdf.numPages} (${Math.round(percent)}%)`;
         }
+
         fileItem.allThumbnails = thumbnails;
         renderPageThumbnails(thumbnails);
     } catch (err) {
+        modalGrid.style.display = 'grid';
         modalGrid.innerHTML = `<div style="text-align:center; padding:40px; color:red;">❌ Помилка завантаження: ${err.message}</div>`;
     }
 }
 
 function renderPageThumbnails(thumbnails) {
+    modalGrid.style.display = 'grid';
+    modalGrid.style.flexDirection = '';
+    modalGrid.style.justifyContent = '';
+    modalGrid.style.alignItems = '';
+    modalGrid.style.minHeight = '';
     modalGrid.innerHTML = '';
+
     thumbnails.forEach((thumbUrl, idx) => {
         const card = document.createElement('div');
         card.className = 'modal-page-card';
