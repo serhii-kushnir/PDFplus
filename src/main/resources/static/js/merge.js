@@ -30,9 +30,23 @@ function openDB() {
     });
 }
 
+async function clearSessionFromIndexedDB() {
+    if (!db) await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await new Promise((resolve, reject) => {
+        const clearReq = store.clear();
+        clearReq.onsuccess = () => resolve();
+        clearReq.onerror = () => reject(clearReq.error);
+    });
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
 async function saveSessionToIndexedDB() {
     if (!db) await openDB();
-    // Збираємо дані перед транзакцією
     const itemsToStore = [];
     for (let i = 0; i < selectedFiles.length; i++) {
         const item = selectedFiles[i];
@@ -47,16 +61,17 @@ async function saveSessionToIndexedDB() {
             fileBlob: blob
         });
     }
-    if (itemsToStore.length === 0) return;
+    if (itemsToStore.length === 0) {
+        await clearSessionFromIndexedDB();
+        return;
+    }
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    // Очищення
     await new Promise((resolve, reject) => {
         const clearReq = store.clear();
         clearReq.onsuccess = () => resolve();
         clearReq.onerror = () => reject(clearReq.error);
     });
-    // Запис
     for (const item of itemsToStore) {
         await new Promise((resolve, reject) => {
             const putReq = store.put(item);
@@ -93,7 +108,6 @@ async function restoreSessionFromIndexedDB() {
     }));
     selectedFiles = restored;
     selectedIndices.clear();
-    // НЕ видаляємо дані! Сесія залишається.
     return true;
 }
 
@@ -125,7 +139,7 @@ function closeModal() {
 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-// ========== ГАРЯЧІ КЛАВІШІ ==========
+// Гарячі клавіші
 document.addEventListener('keydown', (e) => {
     const activeConfirm = document.querySelector('.confirm-overlay');
     if (activeConfirm) {
@@ -166,7 +180,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
+// Інформація про гарячі клавіші
 const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
 if (hotkeyBtn) {
     hotkeyBtn.addEventListener('click', () => {
@@ -197,7 +211,7 @@ if (hotkeyBtn) {
     });
 }
 
-// ========== СТАТИСТИКА ТА ПОВІДОМЛЕННЯ ==========
+// СТАТИСТИКА ТА ПОВІДОМЛЕННЯ
 function updateStats() {
     const statsDiv = document.getElementById('statsInfo');
     if (!statsDiv) return;
@@ -231,7 +245,7 @@ function updateStats() {
     }
 }
 
-// ========== СТЕК ПОВІДОМЛЕНЬ (без кнопок закриття) ==========
+// СТЕК ПОВІДОМЛЕНЬ
 function getNotificationStack() {
     let stack = document.getElementById('notificationStack');
     if (!stack) {
@@ -243,6 +257,19 @@ function getNotificationStack() {
     return stack;
 }
 
+function removeToast(toast) {
+    if (!toast.parentNode) return;
+    toast.classList.add('fade-out');
+    const onTransitionEnd = () => {
+        if (toast.parentNode) toast.remove();
+        toast.removeEventListener('transitionend', onTransitionEnd);
+    };
+    toast.addEventListener('transitionend', onTransitionEnd);
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 500);
+}
+
 function limitToasts(maxCount = 5) {
     const stack = getNotificationStack();
     const toasts = stack.querySelectorAll('.toast-notification:not(.toast-progress)');
@@ -252,20 +279,6 @@ function limitToasts(maxCount = 5) {
     }
 }
 
-function removeToast(toast) {
-    if (!toast.parentNode) return;
-    toast.classList.add('fade-out');
-    const onTransitionEnd = () => {
-        if (toast.parentNode) toast.remove();
-        toast.removeEventListener('transitionend', onTransitionEnd);
-    };
-    toast.addEventListener('transitionend', onTransitionEnd);
-    // fallback: якщо transitionend не спрацював, видалити через 500ms
-    setTimeout(() => {
-        if (toast.parentNode) toast.remove();
-    }, 500);
-}
-
 function showMessage(msg, type, duration = 4000) {
     const stack = getNotificationStack();
     const toast = document.createElement('div');
@@ -273,14 +286,10 @@ function showMessage(msg, type, duration = 4000) {
     const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : (type === 'info' ? '<i class="fas fa-info-circle"></i>' : '<i class="fas fa-check-circle"></i>');
     toast.innerHTML = `${icon}<span>${msg}</span>`;
     stack.appendChild(toast);
-
-    // Обмежуємо кількість тостів (видаляємо старі)
     limitToasts(5);
-
     let timeout = setTimeout(() => {
         removeToast(toast);
     }, duration);
-
     toast.addEventListener('mouseenter', () => clearTimeout(timeout));
     toast.addEventListener('mouseleave', () => {
         timeout = setTimeout(() => {
@@ -289,14 +298,9 @@ function showMessage(msg, type, duration = 4000) {
     });
 }
 
-
-
-// ========== ПРОГРЕС-ТОСТ ==========
 function showProgressToast(title, total) {
-    // Видаляємо попередній прогрес-тост
     const existingProgressToast = document.querySelector('.toast-progress');
     if (existingProgressToast) removeToast(existingProgressToast);
-
     const stack = getNotificationStack();
     const toast = document.createElement('div');
     toast.className = 'toast-notification toast-progress';
@@ -311,7 +315,6 @@ function showProgressToast(title, total) {
         </div>
     `;
     stack.appendChild(toast);
-
     function update(current, message) {
         const percent = (current / total) * 100;
         const fill = toast.querySelector('.progress-bar-fill');
@@ -332,7 +335,7 @@ function showProgressToast(title, total) {
     return { update };
 }
 
-// ========== ДОПОМІЖНІ ФУНКЦІЇ PDF ==========
+// ДОПОМІЖНІ ФУНКЦІЇ PDF
 async function generateThumbnail(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -376,15 +379,13 @@ function updateCardSelectionState(card, isSelected) {
     if (checkbox) checkbox.checked = isSelected;
 }
 
-// ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД ==========
+// ПОПЕРЕДНІЙ ПЕРЕГЛЯД СТОРІНОК
 async function showPagePreview(index) {
     const fileItem = selectedFiles[index];
     if (!fileItem) return;
-
     document.getElementById('modalFileName').innerText = fileItem.name;
     const sizeMB = (fileItem.size / (1024 * 1024)).toFixed(2);
     document.getElementById('modalFileStats').innerText = `${fileItem.pageCount} стор. • ${sizeMB} MB`;
-
     modalGrid.style.display = 'flex';
     modalGrid.style.flexDirection = 'column';
     modalGrid.style.justifyContent = 'center';
@@ -398,12 +399,10 @@ async function showPagePreview(index) {
         <p id="modalProgressText" style="margin-top: 12px; color: var(--text-secondary);">Оброблено сторінок: 0 / ${fileItem.pageCount}</p>
     `;
     modal.classList.add('active');
-
     if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
         renderPageThumbnails(fileItem.allThumbnails);
         return;
     }
-
     try {
         const arrayBuffer = await fileItem.file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -458,7 +457,7 @@ function renderPageThumbnails(thumbnails) {
     });
 }
 
-// ========== СТВОРЕННЯ КАРТКИ ==========
+// СТВОРЕННЯ КАРТКИ
 function createCardElement(data, index) {
     const card = document.createElement('div');
     card.className = 'file-card';
@@ -584,13 +583,9 @@ function initSortable() {
     sortable = new Sortable(filesContainer, {
         animation: 200,
         onEnd: async function(evt) {
-            // Отримуємо перетягнутий DOM-елемент
             const draggedItem = evt.item;
-            // Отримуємо старий індекс з атрибута data-index (до зміни порядку)
             const oldIdx = parseInt(draggedItem.getAttribute('data-index'), 10);
-            // Назва файлу
             const fileName = selectedFiles[oldIdx]?.name || 'файл';
-
             const cards = filesContainer.querySelectorAll('.file-card');
             const newSelectedFiles = [];
             const newSelectedIndices = new Set();
@@ -613,18 +608,15 @@ function initSortable() {
     });
 }
 
-// ========== ОСНОВНІ ОПЕРАЦІЇ (з прогрес-тостами) ==========
+// ОСНОВНІ ОПЕРАЦІЇ
 async function addFiles(newFiles) {
     const total = newFiles.length;
     const progress = showProgressToast('Додавання файлів', total);
     progress.update(0, 'Перевірка файлів...');
-
     let added = 0;
     for (let i = 0; i < total; i++) {
         const file = newFiles[i];
         progress.update(i, `Обробка ${i+1} з ${total}: ${file.name}`);
-
-        // Перевірки розміру, типу, сигнатури, дублікатів...
         if (file.size > MAX_FILE_SIZE_BYTES) {
             showMessage(`❌ Файл "${file.name}" перевищує ліміт ${MAX_FILE_SIZE_MB} МБ (${(file.size / (1024 * 1024)).toFixed(2)} МБ)`, 'error', 5000);
             continue;
@@ -647,31 +639,23 @@ async function addFiles(newFiles) {
             showMessage(`Файл "${file.name}" вже доданий`, 'error');
             continue;
         }
-
         try {
             const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
             const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
             const newIndex = selectedFiles.length;
             selectedFiles.push(newFileData);
-
-            // Перший файл – повний рендер (показуємо сітку та верхню панель)
             if (selectedFiles.length === 1) {
                 uploader.style.display = 'none';
                 filesContainer.style.display = 'flex';
                 topSidebar.style.display = 'flex';
-                renderFilesGrid(); // викликає initSortable()
+                renderFilesGrid();
             } else {
-                // Додаємо нову картку в кінець контейнера
                 const newCard = createCardElement(newFileData, newIndex);
                 filesContainer.appendChild(newCard);
-
-                // ОНОВЛЮЄМО АТРИБУТИ data-index для ВСІХ карток (порядок міг змінитися? Він не змінився, але ми просто оновимо)
                 const allCards = filesContainer.querySelectorAll('.file-card');
                 allCards.forEach((card, idx) => {
                     card.setAttribute('data-index', idx);
                 });
-
-                // Оновлюємо статистику, кнопки та зберігаємо сесію
                 updateStats();
                 updateMergeButtons();
             }
@@ -715,6 +699,7 @@ async function removeFile(index) {
         filesContainer.innerHTML = '<div class="empty-state">Файли не вибрано</div>';
         if (sortable) sortable.destroy();
         sortable = null;
+        await clearSessionFromIndexedDB();
     }
     updateMergeButtons();
     updateStats();
@@ -735,10 +720,8 @@ async function deleteSelected() {
         cancelText: 'Скасувати'
     });
     if (!confirmed) return;
-
     const progress = showProgressToast('Видалення файлів', fileCount);
     progress.update(0, 'Підготовка...');
-
     const indices = Array.from(selectedIndices).sort((a,b) => b - a);
     for (let i = 0; i < indices.length; i++) {
         const idx = indices[i];
@@ -748,16 +731,17 @@ async function deleteSelected() {
     }
     selectedIndices.clear();
     progress.update(fileCount, `Видалено ${fileCount} файлів.`);
-
     if (selectedFiles.length === 0) {
         uploader.style.display = 'block';
         filesContainer.style.display = 'none';
         topSidebar.style.display = 'none';
+        await clearSessionFromIndexedDB();
+    } else {
+        renderFilesGrid();
+        await saveSessionToIndexedDB();
     }
-    renderFilesGrid();
     updateMergeButtons();
     updateStats();
-    await saveSessionToIndexedDB();
     showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
 }
 
@@ -839,11 +823,9 @@ async function rotateSelected() {
         cancelText: 'Скасувати'
     });
     if (!confirmed) return;
-
     const progress = showProgressToast('Обертання файлів', fileCount);
     progress.update(0, 'Підготовка...');
     rotateSelectedBtn.disabled = true;
-
     const indices = Array.from(selectedIndices).sort((a,b)=>a-b);
     let successCount = 0;
     for (let i = 0; i < indices.length; i++) {
@@ -958,7 +940,6 @@ async function performMerge(files, filename, btn, fileCount) {
     btn.disabled = true;
     const progress = showProgressToast('Обʼєднання PDF', fileCount);
     progress.update(0, 'Підготовка...');
-
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
@@ -966,7 +947,6 @@ async function performMerge(files, filename, btn, fileCount) {
         await new Promise(r => setTimeout(r, 50));
     }
     progress.update(fileCount, 'Надсилання на сервер...');
-
     try {
         const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
         if (response.ok) {
@@ -987,7 +967,7 @@ async function performMerge(files, filename, btn, fileCount) {
     }
 }
 
-// ========== ПІДПИСКА НА ПОДІЇ ==========
+// ПІДПИСКА НА ПОДІЇ
 if (uploader) {
     uploader.addEventListener('click', (e) => {
         if (pickButton && (e.target === pickButton || pickButton.contains(e.target))) return;
@@ -1011,7 +991,7 @@ if (mergeSelectedBtn) mergeSelectedBtn.addEventListener('click', mergeSelected);
 if (mergeAllBtn) mergeAllBtn.addEventListener('click', mergeAll);
 if (rotateSelectedBtn) rotateSelectedBtn.addEventListener('click', rotateSelected);
 
-// ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
+// ВІДНОВЛЕННЯ СЕСІЇ
 (async function init() {
     await openDB();
     const restored = await restoreSessionFromIndexedDB();
