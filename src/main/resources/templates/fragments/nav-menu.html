@@ -8,7 +8,6 @@
 </head>
 <body>
 
-<!-- Navigation Menu Fragment -->
 <nav th:fragment="nav-menu" class="nav-container">
     <a href="/" class="nav-brand">
         <span>📄</span> PDF Plus
@@ -21,6 +20,10 @@
         <li><a th:href="@{/scan}" th:class="${currentUri == '/scan'} ? 'active' : ''">Сканувати</a></li>
         <li><a th:href="@{/history}" th:class="${currentUri == '/history'} ? 'active' : ''">Історія</a></li>
     </ul>
+    <!-- Кнопка перемикання теми -->
+    <button id="themeToggle" class="theme-toggle-nav" aria-label="Перемикання теми">
+        <i class="fas fa-moon"></i> Тема
+    </button>
 </nav>
 
 </body>
