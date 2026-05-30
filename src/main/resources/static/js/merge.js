@@ -10,10 +10,37 @@ const MAX_FILE_SIZE_MB = 100;
 const MAX_TOTAL_SIZE_MB = 100;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+// Стан сортування (зростання/спадання)
+let sortState = {
+    name: 'asc',   // 'asc' або 'desc'
+    size: 'asc',
+    pages: 'asc'
+};
+let lastSortType = null; // 'name', 'size', 'pages'
+
 // IndexedDB
 let db = null;
 const DB_NAME = 'PDFMergeSession';
 const STORE_NAME = 'files';
+
+function updateSortArrows(activeType, direction) {
+    const buttons = {
+        name: document.getElementById('sortByNameBtn'),
+        size: document.getElementById('sortBySizeBtn'),
+        pages: document.getElementById('sortByPagesBtn')
+    };
+    for (let type in buttons) {
+        const btn = buttons[type];
+        if (!btn) continue;
+        const arrowSpan = btn.querySelector('.sort-arrow');
+        if (!arrowSpan) continue;
+        if (type === activeType) {
+            arrowSpan.className = `sort-arrow ${direction === 'asc' ? 'asc' : 'desc'}`;
+        } else {
+            arrowSpan.className = 'sort-arrow';
+        }
+    }
+}
 
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -141,7 +168,7 @@ function closeModal() {
 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-// ========== ФІЛЬТРАЦІЯ (показ/приховування карток) ==========
+// ========== ФІЛЬТРАЦІЯ ==========
 function applyFilter() {
     if (!searchQuery.trim()) {
         document.querySelectorAll('.file-card').forEach(card => {
@@ -581,7 +608,7 @@ function createCardElement(data, originalIndex) {
     return card;
 }
 
-// ========== ПОЧАТКОВИЙ РЕНДЕР ==========
+// ========== ПОЧАТКОВИЙ РЕНДЕР (з фільтром) ==========
 function renderFullGrid() {
     filesContainer.innerHTML = '';
     if (selectedFiles.length === 0) {
@@ -595,21 +622,19 @@ function renderFullGrid() {
         const card = createCardElement(selectedFiles[i], i);
         filesContainer.appendChild(card);
     }
-    initSortable(); // тільки тут створюємо Sortable
+    initSortable();
     updateStats();
-    applyFilter();
+    applyFilter();   // застосовуємо фільтр після рендеру
 }
 
-// ========== ДОДАВАННЯ НОВОЇ КАРТКИ (без повного рендеру) ==========
+// ========== ДОДАВАННЯ НОВОЇ КАРТКИ ==========
 function addNewCard(fileData, newIndex) {
     const card = createCardElement(fileData, newIndex);
     filesContainer.appendChild(card);
-    // Оновлюємо індекси всіх карток
     const allCards = filesContainer.querySelectorAll('.file-card');
     allCards.forEach((c, idx) => {
         c.setAttribute('data-index', idx);
     });
-    // Застосовуємо фільтр до нової картки
     if (searchQuery) {
         if (fileData.name.toLowerCase().includes(searchQuery.toLowerCase())) {
             card.classList.remove('hidden');
@@ -617,12 +642,11 @@ function addNewCard(fileData, newIndex) {
             card.classList.add('hidden');
         }
     }
-    // Оновлюємо статистику та кнопки
     updateStats();
     updateMergeButtons();
 }
 
-// ========== СОРТУВАННЯ ==========
+// ========== СОРТУВАННЯ (Drag&Drop) ==========
 function initSortable() {
     if (sortable) sortable.destroy();
     if (!filesContainer || !filesContainer.isConnected) return;
@@ -652,6 +676,64 @@ function initSortable() {
             await saveSessionToIndexedDB();
         }
     });
+}
+
+// ========== ФУНКЦІЇ СОРТУВАННЯ (ЗРОСТАННЯ/СПАДАННЯ) ==========
+function sortByName() {
+    if (selectedFiles.length === 0) return;
+    if (lastSortType === 'name') {
+        sortState.name = sortState.name === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortState.name = 'asc';
+        lastSortType = 'name';
+    }
+    const direction = sortState.name;
+    selectedFiles.sort((a, b) => a.name.localeCompare(b.name));
+    if (direction === 'desc') selectedFiles.reverse();
+    selectedIndices.clear();
+    renderFullGrid();
+    updateMergeButtons();
+    saveSessionToIndexedDB();
+    updateSortArrows('name', direction);
+    showMessage(`✅ Відсортовано за назвою (${direction === 'asc' ? 'А→Я' : 'Я→А'})`, 'info');
+}
+
+function sortBySize() {
+    if (selectedFiles.length === 0) return;
+    if (lastSortType === 'size') {
+        sortState.size = sortState.size === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortState.size = 'asc';
+        lastSortType = 'size';
+    }
+    const direction = sortState.size;
+    selectedFiles.sort((a, b) => a.size - b.size);
+    if (direction === 'desc') selectedFiles.reverse();
+    selectedIndices.clear();
+    renderFullGrid();
+    updateMergeButtons();
+    saveSessionToIndexedDB();
+    updateSortArrows('size', direction);
+    showMessage(`✅ Відсортовано за розміром (${direction === 'asc' ? 'зростання' : 'спадання'})`, 'info');
+}
+
+function sortByPages() {
+    if (selectedFiles.length === 0) return;
+    if (lastSortType === 'pages') {
+        sortState.pages = sortState.pages === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortState.pages = 'asc';
+        lastSortType = 'pages';
+    }
+    const direction = sortState.pages;
+    selectedFiles.sort((a, b) => a.pageCount - b.pageCount);
+    if (direction === 'desc') selectedFiles.reverse();
+    selectedIndices.clear();
+    renderFullGrid();
+    updateMergeButtons();
+    saveSessionToIndexedDB();
+    updateSortArrows('pages', direction);
+    showMessage(`✅ Відсортовано за сторінками (${direction === 'asc' ? 'зростання' : 'спадання'})`, 'info');
 }
 
 // ========== ОСНОВНІ ОПЕРАЦІЇ ==========
@@ -686,21 +768,21 @@ async function addFiles(newFiles) {
             continue;
         }
         try {
-             const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
-                    const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
-                    const newIndex = selectedFiles.length;
-                    selectedFiles.push(newFileData);
-                    if (selectedFiles.length === 1) {
-                        uploader.style.display = 'none';
-                        filesContainer.style.display = 'flex';
-                        topSidebar.style.display = 'flex';
-                        renderFullGrid();
-                    } else {
-                        addNewCard(newFileData, newIndex);
-                    }
-                    added++;
-                    progress.update(added, `Додано ${added} з ${total} файлів`);
-                } catch (err) {
+            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
+            const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
+            const newIndex = selectedFiles.length;
+            selectedFiles.push(newFileData);
+            if (selectedFiles.length === 1) {
+                uploader.style.display = 'none';
+                filesContainer.style.display = 'flex';
+                topSidebar.style.display = 'flex';
+                renderFullGrid();
+            } else {
+                addNewCard(newFileData, newIndex);
+            }
+            added++;
+            progress.update(added, `Додано ${added} з ${total} файлів`);
+        } catch (err) {
             showMessage(`❌ ${err.message || 'Помилка обробки'} для файлу "${file.name}"`, 'error');
         }
     }
@@ -740,7 +822,7 @@ async function removeFile(index) {
         sortable = null;
         await clearSessionFromIndexedDB();
     } else {
-        applyFilter(); // Оновити видимість після видалення
+        applyFilter();
     }
     updateMergeButtons();
     updateStats();
@@ -1046,6 +1128,17 @@ if (searchInput) {
         applyFilter();
     });
 }
+
+// ========== ПІДКЛЮЧЕННЯ КНОПОК СОРТУВАННЯ ==========
+document.addEventListener('DOMContentLoaded', () => {
+    const sortByNameBtn = document.getElementById('sortByNameBtn');
+    const sortBySizeBtn = document.getElementById('sortBySizeBtn');
+    const sortByPagesBtn = document.getElementById('sortByPagesBtn');
+
+    if (sortByNameBtn) sortByNameBtn.addEventListener('click', sortByName);
+    if (sortBySizeBtn) sortBySizeBtn.addEventListener('click', sortBySize);
+    if (sortByPagesBtn) sortByPagesBtn.addEventListener('click', sortByPages);
+});
 
 // ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
 (async function init() {
