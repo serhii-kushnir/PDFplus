@@ -86,6 +86,68 @@ body.dark {
 }
 
 /* ===== ЗАГАЛЬНІ СТИЛІ ===== */
+.sort-btn {
+    background: var(--hotkey-bg, #2c3e50) !important;
+    border: 1px solid var(--hotkey-border, #e74c3c) !important;
+    color: var(--hotkey-color, white) !important;
+    border-radius: 40px !important;
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+.sort-btn:hover {
+    background: var(--hotkey-hover-bg, #e74c3c) !important;
+    transform: translateY(-2px) !important;
+}
+.sort-arrow {
+    display: inline-block;
+    width: 12px;
+    text-align: center;
+    font-size: 12px;
+}
+.sort-arrow.asc::after {
+    content: '↑';
+}
+.sort-arrow.desc::after {
+    content: '↓';
+}
+.filter-sort-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+.filter-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+.sort-buttons-group {
+    display: flex;
+    gap: 8px;
+}
+.sort-btn {
+    padding: 6px 12px;
+    background: #e0e0e0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.sort-btn:hover {
+    background: #d0d0d0;
+}
+.sort-btn:active {
+    background: #c0c0c0;
+}
 .hotkey-info-btn {
     background: var(--hotkey-bg) !important;
     border: 1px solid var(--hotkey-border) !important;
@@ -227,7 +289,7 @@ body.dark {
 }
 .btn-secondary:hover {
     background-color: var(--progress-bg);
-    border-color: #94a3b8;
+    transform: translateY(-2px) !important;
 }
 .btn-danger {
     background-color: var(--btn-danger-bg);
@@ -246,6 +308,7 @@ body.dark {
 }
 body.dark .btn-danger:hover {
     background-color: #991b1b;
+    transform: translateY(-2px) !important;
 }
 .btn-add-more {
     background-color: var(--btn-secondary-bg);
@@ -261,6 +324,7 @@ body.dark .btn-danger:hover {
 }
 .btn-add-more:hover {
     background-color: var(--progress-bg);
+    transform: translateY(-2px) !important;
 }
 .btn.btn--process {
     background: linear-gradient(95deg, #e74c3c, #c0392b);
@@ -277,6 +341,10 @@ body.dark .btn-danger:hover {
     align-items: center;
     gap: 8px;
     white-space: nowrap;
+}
+.btn.btn--process:hover {
+    background-color: #991b1b;
+    transform: translateY(-2px) !important;
 }
 .btn.btn--process:disabled {
     opacity: 0.6;
