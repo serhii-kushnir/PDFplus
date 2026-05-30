@@ -87,9 +87,9 @@ body.dark {
 
 /* ===== ЗАГАЛЬНІ СТИЛІ ===== */
 .hotkey-info-btn {
-    background: var(--hotkey-bg, #eef2ff) !important;
-    border: 1px solid var(--hotkey-border, #cbd5e1) !important;
-    color: var(--hotkey-color, #1e40af) !important;
+    background: var(--hotkey-bg) !important;
+    border: 1px solid var(--hotkey-border) !important;
+    color: var(--hotkey-color) !important;
     border-radius: 40px !important;
     padding: 8px 16px !important;
     font-size: 0.85rem !important;
@@ -100,7 +100,7 @@ body.dark {
     gap: 8px !important;
 }
 .hotkey-info-btn:hover {
-    background: var(--hotkey-hover-bg, #e2e8f0) !important;
+    background: var(--hotkey-hover-bg) !important;
     transform: translateY(-2px) !important;
 }
 
@@ -123,6 +123,59 @@ body.dark {
     line-height: 1.4;
 }
 
+/* Рядок фільтр + статистика */
+.filter-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 5px 40px 5px 40px;
+}
+.filter-wrapper {
+    flex: 1;
+    max-width: 256px;
+}
+.filter-wrapper .search-input {
+    width: 100%;
+    padding: 8px 16px;
+    border-radius: 40px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+.filter-wrapper .search-input:focus {
+    outline: none;
+    border-color: #e74c3c;
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+.stats-info {
+    background: var(--stats-bg);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: var(--stats-text);
+    text-align: right;
+    display: inline-block;
+    width: auto;
+    margin-bottom: 0;
+}
+.stats-info.warning {
+    color: var(--warning-text);
+}
+
+@media (max-width: 640px) {
+    .filter-stats-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-wrapper {
+        max-width: none;
+    }
+}
+
 /* ===== ВЕРХНЯ ПАНЕЛЬ ===== */
 .tool__sidebar.top-sidebar {
     display: none;
@@ -143,19 +196,16 @@ body.dark {
     top: 0px;
     z-index: 100;
 }
-
 .sidebar-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 12px;
 }
-
 .btn-group {
     display: flex;
     gap: 8px;
 }
-
 .separator {
     width: 1px;
     height: 30px;
@@ -163,6 +213,7 @@ body.dark {
     margin: 0 4px;
 }
 
+/* Кнопки */
 .btn-secondary {
     background-color: var(--btn-secondary-bg);
     border: 1px solid var(--btn-secondary-border);
@@ -178,7 +229,6 @@ body.dark {
     background-color: var(--progress-bg);
     border-color: #94a3b8;
 }
-
 .btn-danger {
     background-color: var(--btn-danger-bg);
     border: 1px solid var(--btn-danger-border);
@@ -197,7 +247,6 @@ body.dark {
 body.dark .btn-danger:hover {
     background-color: #991b1b;
 }
-
 .btn-add-more {
     background-color: var(--btn-secondary-bg);
     border: 1px solid var(--btn-secondary-border);
@@ -213,7 +262,6 @@ body.dark .btn-danger:hover {
 .btn-add-more:hover {
     background-color: var(--progress-bg);
 }
-
 .btn.btn--process {
     background: linear-gradient(95deg, #e74c3c, #c0392b);
     border: none;
@@ -234,7 +282,6 @@ body.dark .btn-danger:hover {
     opacity: 0.6;
     cursor: not-allowed;
 }
-
 .theme-toggle {
     background: var(--stats-bg);
     border: 1px solid var(--border-color);
@@ -522,19 +569,8 @@ body.dark .file-card.selected {
     visibility: visible;
     opacity: 1;
 }
-
-/* ===== СТАТИСТИКА ===== */
-.stats-info {
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    color: var(--stats-text);
-    text-align: right;
-    display: inline-block;
-    width: auto;
-}
-.stats-info.warning {
-    color: var(--warning-text);
+.file-card.hidden {
+    display: none;
 }
 
 /* ===== МОДАЛЬНЕ ВІКНО ПЕРЕГЛЯДУ ===== */
@@ -567,7 +603,7 @@ body.dark .loader:before {
     background: rgba(30, 41, 59, 0.6);
 }
 .progress-container-modal {
-    background: var(--progress-bg, #e2e8f0);
+    background: var(--progress-bg);
     border-radius: 10px;
     overflow: hidden;
     margin: 20px auto 0;
