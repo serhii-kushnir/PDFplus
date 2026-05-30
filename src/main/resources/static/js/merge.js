@@ -275,6 +275,7 @@ function updateStats() {
     if (selectedFiles.length === 0) {
         statsDiv.style.display = 'none';
         wasSizeLimitExceeded = false;
+        updateChart();
         return;
     }
     let totalPages = 0, totalSizeMB = 0;
@@ -300,6 +301,7 @@ function updateStats() {
             wasSizeLimitExceeded = false;
         }
     }
+    updateChart();
 }
 
 function getNotificationStack() {
@@ -1129,7 +1131,7 @@ if (searchInput) {
     });
 }
 
-// ========== ПІДКЛЮЧЕННЯ КНОПОК СОРТУВАННЯ ==========
+// ========== ПІДКЛЮЧЕННЯ КНОПОК СОРТУВАННЯ ТА ДІАГРАМИ ==========
 document.addEventListener('DOMContentLoaded', () => {
     const sortByNameBtn = document.getElementById('sortByNameBtn');
     const sortBySizeBtn = document.getElementById('sortBySizeBtn');
@@ -1138,7 +1140,95 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortByNameBtn) sortByNameBtn.addEventListener('click', sortByName);
     if (sortBySizeBtn) sortBySizeBtn.addEventListener('click', sortBySize);
     if (sortByPagesBtn) sortByPagesBtn.addEventListener('click', sortByPages);
+
+    // Кнопка перемикання діаграми
+    const toggleChartBtn = document.getElementById('toggleChartBtn');
+    const chartContainer = document.getElementById('chartContainer');
+    let chartVisible = false;
+
+    if (toggleChartBtn && chartContainer) {
+        toggleChartBtn.addEventListener('click', () => {
+            if (chartVisible) {
+                chartContainer.style.display = 'none';
+                toggleChartBtn.innerHTML = '📊 Діаграма';
+                chartVisible = false;
+            } else {
+                chartContainer.style.display = 'block';
+                toggleChartBtn.innerHTML = '📊 Сховати';
+                chartVisible = true;
+                // Якщо діаграма ще не створена, але файли є – оновити
+                if (selectedFiles.length > 0 && typeof sizeChart !== 'undefined' && !sizeChart) {
+                    updateChart();
+                }
+            }
+        });
+    }
 });
+
+// ========== ДІАГРАМА РОЗПОДІЛУ РОЗМІРІВ ==========
+let sizeChart = null;
+const chartCanvas = document.getElementById('sizeChart');
+const chartContainer = document.getElementById('chartContainer');
+
+function updateChart() {
+    if (!chartCanvas || !chartContainer) return;
+    if (selectedFiles.length === 0) {
+        if (chartContainer) chartContainer.style.display = 'none';
+        if (sizeChart) { sizeChart.destroy(); sizeChart = null; }
+        return;
+    }
+    // Якщо діаграма була прихована, не показуємо її автоматично, тільки якщо вона видима або якщо це перший виклик (опціонально)
+    // Але для зручності покажемо, якщо вона ще не створена або видима. Для простоти залишимо так:
+    if (chartContainer.style.display === 'none') return; // не показуємо, якщо прихована вручну
+    chartContainer.style.display = 'block';
+    const labels = selectedFiles.map((f, i) => `Файл ${i+1}`);
+    const sizes = selectedFiles.map(f => f.size / (1024 * 1024));
+    const isDark = document.body.classList.contains('dark');
+    const textColor = isDark ? '#f1f5f9' : '#1f2a3e';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    if (sizeChart) sizeChart.destroy();
+    sizeChart = new Chart(chartCanvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Розмір (МБ)',
+                data: sizes,
+                backgroundColor: 'rgba(231, 76, 60, 0.7)',
+                borderColor: '#e74c3c',
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { labels: { color: textColor, font: { size: 12 } } },
+                tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(2)} МБ` } }
+            },
+            scales: {
+                y: {
+                    title: { display: true, text: 'Розмір (МБ)', color: textColor },
+                    ticks: { color: textColor },
+                    grid: { color: gridColor }
+                },
+                x: {
+                    ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
+                    grid: { color: gridColor }
+                }
+            }
+        }
+    });
+}
+
+// Стежимо за зміною теми, щоб оновити діаграму
+const themeObserver = new MutationObserver(() => {
+    if (sizeChart && chartContainer.style.display !== 'none') {
+        updateChart();
+    }
+});
+themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 // ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
 (async function init() {
