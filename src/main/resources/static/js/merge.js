@@ -4,6 +4,8 @@ let selectedFiles = [];
 let selectedIndices = new Set();
 let sortable = null;
 let wasSizeLimitExceeded = false;
+let searchQuery = '';
+
 const MAX_FILE_SIZE_MB = 100;
 const MAX_TOTAL_SIZE_MB = 100;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -139,7 +141,35 @@ function closeModal() {
 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-// Гарячі клавіші
+// ========== ФІЛЬТРАЦІЯ (показ/приховування карток) ==========
+function applyFilter() {
+    if (!searchQuery.trim()) {
+        document.querySelectorAll('.file-card').forEach(card => {
+            card.classList.remove('hidden');
+        });
+        return;
+    }
+    const query = searchQuery.toLowerCase();
+    const cards = document.querySelectorAll('.file-card');
+    let visibleCount = 0;
+    cards.forEach(card => {
+        const idx = parseInt(card.getAttribute('data-index'), 10);
+        const fileName = selectedFiles[idx]?.name || '';
+        if (fileName.toLowerCase().includes(query)) {
+            card.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+    if (visibleCount === 0 && searchQuery) {
+        showMessage(`❌ Файлів за запитом "${searchQuery}" не знайдено`, 'error', 2000);
+    } else if (searchQuery && visibleCount !== selectedFiles.length) {
+        showMessage(`🔍 Знайдено ${visibleCount} файл(ів) з ${selectedFiles.length}`, 'info', 2000);
+    }
+}
+
+// ========== ГАРЯЧІ КЛАВІШІ ==========
 document.addEventListener('keydown', (e) => {
     const activeConfirm = document.querySelector('.confirm-overlay');
     if (activeConfirm) {
@@ -180,7 +210,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Інформація про гарячі клавіші
+// ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
 const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
 if (hotkeyBtn) {
     hotkeyBtn.addEventListener('click', () => {
@@ -211,7 +241,7 @@ if (hotkeyBtn) {
     });
 }
 
-// СТАТИСТИКА ТА ПОВІДОМЛЕННЯ
+// ========== СТАТИСТИКА ТА ПОВІДОМЛЕННЯ ==========
 function updateStats() {
     const statsDiv = document.getElementById('statsInfo');
     if (!statsDiv) return;
@@ -245,7 +275,6 @@ function updateStats() {
     }
 }
 
-// СТЕК ПОВІДОМЛЕНЬ
 function getNotificationStack() {
     let stack = document.getElementById('notificationStack');
     if (!stack) {
@@ -335,7 +364,7 @@ function showProgressToast(title, total) {
     return { update };
 }
 
-// ДОПОМІЖНІ ФУНКЦІЇ PDF
+// ========== ДОПОМІЖНІ ФУНКЦІЇ PDF ==========
 async function generateThumbnail(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -379,7 +408,7 @@ function updateCardSelectionState(card, isSelected) {
     if (checkbox) checkbox.checked = isSelected;
 }
 
-// ПОПЕРЕДНІЙ ПЕРЕГЛЯД СТОРІНОК
+// ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД ==========
 async function showPagePreview(index) {
     const fileItem = selectedFiles[index];
     if (!fileItem) return;
@@ -457,17 +486,17 @@ function renderPageThumbnails(thumbnails) {
     });
 }
 
-// СТВОРЕННЯ КАРТКИ
-function createCardElement(data, index) {
+// ========== СТВОРЕННЯ КАРТКИ ==========
+function createCardElement(data, originalIndex) {
     const card = document.createElement('div');
     card.className = 'file-card';
-    if (selectedIndices.has(index)) card.classList.add('selected');
-    card.setAttribute('data-index', index);
+    if (selectedIndices.has(originalIndex)) card.classList.add('selected');
+    card.setAttribute('data-index', originalIndex);
     const chkDiv = document.createElement('div');
     chkDiv.className = 'file-card-checkbox';
     const chk = document.createElement('input');
     chk.type = 'checkbox';
-    chk.checked = selectedIndices.has(index);
+    chk.checked = selectedIndices.has(originalIndex);
     chk.addEventListener('click', (e) => {
         e.stopPropagation();
         const currentCard = e.target.closest('.file-card');
@@ -552,11 +581,8 @@ function createCardElement(data, index) {
     return card;
 }
 
-function renderFilesGrid() {
-    let scrollPercent = 0;
-    if (filesContainer.scrollHeight > filesContainer.clientHeight) {
-        scrollPercent = filesContainer.scrollTop / (filesContainer.scrollHeight - filesContainer.clientHeight);
-    }
+// ========== ПОЧАТКОВИЙ РЕНДЕР ==========
+function renderFullGrid() {
     filesContainer.innerHTML = '';
     if (selectedFiles.length === 0) {
         filesContainer.innerHTML = '<div class="empty-state">Файли не вибрано</div>';
@@ -569,17 +595,37 @@ function renderFilesGrid() {
         const card = createCardElement(selectedFiles[i], i);
         filesContainer.appendChild(card);
     }
-    initSortable();
+    initSortable(); // тільки тут створюємо Sortable
     updateStats();
-    if (scrollPercent > 0 && filesContainer.scrollHeight > filesContainer.clientHeight) {
-        const newScrollTop = scrollPercent * (filesContainer.scrollHeight - filesContainer.clientHeight);
-        filesContainer.scrollTop = newScrollTop;
-    }
+    applyFilter();
 }
 
+// ========== ДОДАВАННЯ НОВОЇ КАРТКИ (без повного рендеру) ==========
+function addNewCard(fileData, newIndex) {
+    const card = createCardElement(fileData, newIndex);
+    filesContainer.appendChild(card);
+    // Оновлюємо індекси всіх карток
+    const allCards = filesContainer.querySelectorAll('.file-card');
+    allCards.forEach((c, idx) => {
+        c.setAttribute('data-index', idx);
+    });
+    // Застосовуємо фільтр до нової картки
+    if (searchQuery) {
+        if (fileData.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+            card.classList.remove('hidden');
+        } else {
+            card.classList.add('hidden');
+        }
+    }
+    // Оновлюємо статистику та кнопки
+    updateStats();
+    updateMergeButtons();
+}
+
+// ========== СОРТУВАННЯ ==========
 function initSortable() {
     if (sortable) sortable.destroy();
-    if (!filesContainer) return;
+    if (!filesContainer || !filesContainer.isConnected) return;
     sortable = new Sortable(filesContainer, {
         animation: 200,
         onEnd: async function(evt) {
@@ -608,7 +654,7 @@ function initSortable() {
     });
 }
 
-// ОСНОВНІ ОПЕРАЦІЇ
+// ========== ОСНОВНІ ОПЕРАЦІЇ ==========
 async function addFiles(newFiles) {
     const total = newFiles.length;
     const progress = showProgressToast('Додавання файлів', total);
@@ -640,28 +686,21 @@ async function addFiles(newFiles) {
             continue;
         }
         try {
-            const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
-            const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
-            const newIndex = selectedFiles.length;
-            selectedFiles.push(newFileData);
-            if (selectedFiles.length === 1) {
-                uploader.style.display = 'none';
-                filesContainer.style.display = 'flex';
-                topSidebar.style.display = 'flex';
-                renderFilesGrid();
-            } else {
-                const newCard = createCardElement(newFileData, newIndex);
-                filesContainer.appendChild(newCard);
-                const allCards = filesContainer.querySelectorAll('.file-card');
-                allCards.forEach((card, idx) => {
-                    card.setAttribute('data-index', idx);
-                });
-                updateStats();
-                updateMergeButtons();
-            }
-            added++;
-            progress.update(added, `Додано ${added} з ${total} файлів`);
-        } catch (err) {
+             const { thumbnailUrl, pageCount, fileSize } = await generateThumbnail(file);
+                    const newFileData = { file, thumbnailUrl, name: file.name, size: fileSize, pageCount, allThumbnails: null };
+                    const newIndex = selectedFiles.length;
+                    selectedFiles.push(newFileData);
+                    if (selectedFiles.length === 1) {
+                        uploader.style.display = 'none';
+                        filesContainer.style.display = 'flex';
+                        topSidebar.style.display = 'flex';
+                        renderFullGrid();
+                    } else {
+                        addNewCard(newFileData, newIndex);
+                    }
+                    added++;
+                    progress.update(added, `Додано ${added} з ${total} файлів`);
+                } catch (err) {
             showMessage(`❌ ${err.message || 'Помилка обробки'} для файлу "${file.name}"`, 'error');
         }
     }
@@ -700,6 +739,8 @@ async function removeFile(index) {
         if (sortable) sortable.destroy();
         sortable = null;
         await clearSessionFromIndexedDB();
+    } else {
+        applyFilter(); // Оновити видимість після видалення
     }
     updateMergeButtons();
     updateStats();
@@ -726,23 +767,29 @@ async function deleteSelected() {
     for (let i = 0; i < indices.length; i++) {
         const idx = indices[i];
         progress.update(i+1, `Видалення ${i+1} з ${fileCount}: ${selectedFiles[idx]?.name || 'файл'}`);
+        const card = document.querySelector(`.file-card[data-index='${idx}']`);
+        if (card) card.remove();
         selectedFiles.splice(idx, 1);
         await new Promise(r => setTimeout(r, 50));
     }
     selectedIndices.clear();
-    progress.update(fileCount, `Видалено ${fileCount} файлів.`);
+    const remainingCards = filesContainer.querySelectorAll('.file-card');
+    remainingCards.forEach((card, newIdx) => {
+        card.setAttribute('data-index', newIdx);
+    });
     if (selectedFiles.length === 0) {
         uploader.style.display = 'block';
         filesContainer.style.display = 'none';
         topSidebar.style.display = 'none';
         await clearSessionFromIndexedDB();
     } else {
-        renderFilesGrid();
-        await saveSessionToIndexedDB();
+        applyFilter();
     }
+    progress.update(fileCount, `Видалено ${fileCount} файлів.`);
     updateMergeButtons();
     updateStats();
     showMessage(`✅ Видалено ${fileCount} файлів`, 'success');
+    await saveSessionToIndexedDB();
 }
 
 function showConfirm(options) {
@@ -967,7 +1014,7 @@ async function performMerge(files, filename, btn, fileCount) {
     }
 }
 
-// ПІДПИСКА НА ПОДІЇ
+// ========== ПІДПИСКА НА ПОДІЇ ==========
 if (uploader) {
     uploader.addEventListener('click', (e) => {
         if (pickButton && (e.target === pickButton || pickButton.contains(e.target))) return;
@@ -991,17 +1038,30 @@ if (mergeSelectedBtn) mergeSelectedBtn.addEventListener('click', mergeSelected);
 if (mergeAllBtn) mergeAllBtn.addEventListener('click', mergeAll);
 if (rotateSelectedBtn) rotateSelectedBtn.addEventListener('click', rotateSelected);
 
-// ВІДНОВЛЕННЯ СЕСІЇ
+// ========== ПОШУК ==========
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        applyFilter();
+    });
+}
+
+// ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
 (async function init() {
     await openDB();
     const restored = await restoreSessionFromIndexedDB();
     if (restored && selectedFiles.length > 0) {
-        renderFilesGrid();
+        renderFullGrid();
         updateMergeButtons();
         updateStats();
         uploader.style.display = 'none';
         filesContainer.style.display = 'flex';
         topSidebar.style.display = 'flex';
         showMessage(`📂 Відновлено ${selectedFiles.length} файл(ів) з попередньої сесії.`, 'info', 5000);
+        if (searchInput && searchInput.value) {
+            searchQuery = searchInput.value;
+            applyFilter();
+        }
     }
 })();
