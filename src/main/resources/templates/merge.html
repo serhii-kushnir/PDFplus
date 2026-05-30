@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="/js/theme.js" defer></script>
     <script src="/js/merge.js" defer></script>
 </head>
@@ -54,27 +55,27 @@
         </div>
     </div>
 
-    <!-- Новий рядок: фільтр зліва, статистика справа -->
+    <!-- Рядок: фільтр зліва, кнопки сортування, статистика справа -->
     <div class="filter-stats-row">
         <div class="filter-wrapper">
             <input type="text" id="searchInput" placeholder="🔍 Фільтр за назвою..." class="search-input">
         </div>
         <div class="sort-buttons-group">
-            <button id="sortByNameBtn" class="sort-btn" title="Сортувати за назвою">
-                📄 Сортувати за назвою <span class="sort-arrow"></span>
-            </button>
-            <button id="sortBySizeBtn" class="sort-btn" title="Сортувати за розміром">
-                📦 Сортувати за розміром <span class="sort-arrow"></span>
-            </button>
-            <button id="sortByPagesBtn" class="sort-btn" title="Сортувати за сторінками">
-                📑 Сортувати за сторінками <span class="sort-arrow"></span>
-            </button>
+            <button id="sortByNameBtn" class="sort-btn" title="Сортувати за назвою">📄 Ім'я <span class="sort-arrow"></span></button>
+            <button id="sortBySizeBtn" class="sort-btn" title="Сортувати за розміром">📦 Розмір <span class="sort-arrow"></span></button>
+            <button id="sortByPagesBtn" class="sort-btn" title="Сортувати за сторінками">📑 Сторінка <span class="sort-arrow"></span></button>
+            <button id="toggleChartBtn" class="sort-btn" title="Показати/сховати діаграму">📊 Діаграма</button>
         </div>
         <div id="statsInfo" class="stats-info" style="display: none;">
             <span id="totalFiles">0</span> файлів,
             <span id="totalPages">0</span> сторінок,
             <span id="totalSize">0</span> MB
         </div>
+    </div>
+
+    <!-- Контейнер для діаграми розподілу розмірів -->
+    <div id="chartContainer" class="chart-container" style="display: none;">
+        <canvas id="sizeChart"></canvas>
     </div>
 
     <div class="tool tool--small">

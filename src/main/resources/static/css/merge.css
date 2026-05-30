@@ -86,6 +86,25 @@ body.dark {
 }
 
 /* ===== ЗАГАЛЬНІ СТИЛІ ===== */
+/* Контейнер діаграми */
+.chart-container {
+    margin: 0px 0px 24px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: 24px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.chart-container canvas {
+    max-height: 300px;
+    width: 100%;
+}
+/* Кастомні тултіпи для кнопок сортування */
+.sort-btn {
+    position: relative;
+}
+
+
 .sort-btn {
     background: var(--hotkey-bg, #2c3e50) !important;
     border: 1px solid var(--hotkey-border, #e74c3c) !important;
@@ -192,7 +211,7 @@ body.dark {
     justify-content: space-between;
     align-items: center;
     gap: 16px;
-    padding: 5px 40px 5px 40px;
+    padding: 15px 40px 15px 40px;
 }
 .filter-wrapper {
     flex: 1;
