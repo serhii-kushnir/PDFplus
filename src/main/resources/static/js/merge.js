@@ -5,6 +5,7 @@ let selectedIndices = new Set();
 let sortable = null;
 let wasSizeLimitExceeded = false;
 let searchQuery = '';
+let wasSelectedLimitExceeded = false;
 
 const MAX_FILE_SIZE_MB = 100;
 const MAX_TOTAL_SIZE_MB = 100;
@@ -1032,21 +1033,48 @@ function clearSelection() {
 function updateMergeButtons() {
     const anySelected = selectedIndices.size > 0;
     const enoughSelected = selectedIndices.size >= 2;
-    const totalSizeMB = selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024);
-    const sizeLimitExceeded = totalSizeMB > MAX_TOTAL_SIZE_MB;
-    mergeSelectedBtn.disabled = !enoughSelected || sizeLimitExceeded;
-    mergeAllBtn.disabled = selectedFiles.length < 2 || sizeLimitExceeded;
+
+    // Розмір усіх файлів (для кнопки "Об'єднати все")
+    const totalSizeAllMB = selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024);
+    const allLimitExceeded = totalSizeAllMB > MAX_TOTAL_SIZE_MB;
+
+    // Розмір лише вибраних файлів (для кнопки "Об'єднати вибрані")
+    let selectedSizeMB = 0;
+    for (let idx of selectedIndices) {
+        selectedSizeMB += (selectedFiles[idx]?.size || 0);
+    }
+    selectedSizeMB /= (1024 * 1024);
+    const selectedLimitExceeded = selectedSizeMB > MAX_TOTAL_SIZE_MB;
+
+    // Блокуємо кнопки
+    mergeSelectedBtn.disabled = !enoughSelected || selectedLimitExceeded;
+    mergeAllBtn.disabled = selectedFiles.length < 2 || allLimitExceeded;
     deleteSelectedBtn.disabled = !anySelected;
     clearSelectionBtn.disabled = !anySelected;
     selectAllBtn.disabled = (selectedIndices.size === selectedFiles.length);
     rotateSelectedBtn.disabled = !anySelected;
-    if (sizeLimitExceeded) {
-        const msg = `⚠️ Загальний розмір файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ. Об'єднання неможливе.`;
-        mergeSelectedBtn.title = msg;
-        mergeAllBtn.title = msg;
+
+    // Підказки через атрибут title
+    if (selectedLimitExceeded) {
+        mergeSelectedBtn.title = `⚠️ Загальний розмір вибраних файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${selectedSizeMB.toFixed(2)} МБ). Об'єднання неможливе.`;
     } else {
         mergeSelectedBtn.title = enoughSelected ? "" : "Виберіть принаймні 2 файли";
+    }
+
+    if (allLimitExceeded) {
+        mergeAllBtn.title = `⚠️ Загальний розмір всіх файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${totalSizeAllMB.toFixed(2)} МБ). Об'єднання неможливе.`;
+    } else {
         mergeAllBtn.title = selectedFiles.length >= 2 ? "" : "Додайте принаймні 2 файли";
+    }
+
+    // ТОСТ ПРИ ПЕРЕВИЩЕННІ ЛІМІТУ ВИБРАНИХ ФАЙЛІВ
+    if (selectedLimitExceeded && !wasSelectedLimitExceeded) {
+        showMessage(`⚠️ Загальний розмір ВИБРАНИХ файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${selectedSizeMB.toFixed(2)} МБ). Об'єднання заблоковано.`, 'error', 5000);
+        wasSelectedLimitExceeded = true;
+    } else if (!selectedLimitExceeded && wasSelectedLimitExceeded) {
+        // Якщо ліміт більше не перевищено – показуємо зелене сповіщення (не обов'язково, але для зручності)
+        showMessage(`✅ Розмір вибраних файлів в межах ${MAX_TOTAL_SIZE_MB} МБ. Об'єднання доступне.`, 'success', 3000);
+        wasSelectedLimitExceeded = false;
     }
 }
 
@@ -1055,6 +1083,18 @@ async function mergeSelected() {
         showMessage(`❌ Потрібно вибрати принаймні 2 PDF-файли для об'єднання. Вибрано: ${selectedIndices.size}`, 'error');
         return;
     }
+
+    // Перевірка ліміту вибраних файлів (на випадок, якщо кнопка з якоїсь причини активна)
+    let selectedSizeMB = 0;
+    for (let idx of selectedIndices) {
+        selectedSizeMB += (selectedFiles[idx]?.size || 0);
+    }
+    selectedSizeMB /= (1024 * 1024);
+    if (selectedSizeMB > MAX_TOTAL_SIZE_MB) {
+        showMessage(`❌ Загальний розмір вибраних файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${selectedSizeMB.toFixed(2)} МБ). Об'єднання неможливе.`, 'error');
+        return;
+    }
+
     const fileCount = selectedIndices.size;
     const confirmed = await showConfirm({
         title: '🔗 Об\'єднання вибраних файлів',
@@ -1088,43 +1128,61 @@ async function performMerge(files, filename, btn, fileCount) {
     btn.disabled = true;
     const progress = showProgressToast('Обʼєднання PDF', fileCount);
     progress.update(0, 'Підготовка...');
+
+    // Формуємо FormData (підготовка файлів)
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
-        progress.update(i+1, `Додано файл ${i+1} з ${fileCount}`);
+        progress.update(i + 1, `Додано файл ${i + 1} з ${fileCount}`);
         await new Promise(r => setTimeout(r, 50));
     }
-    progress.update(fileCount, 'Надсилання на сервер...');
-    try {
-        const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
-        if (!response.ok) {
-            let errorMsg = `Сервер повернув помилку ${response.status}`;
+    progress.update(fileCount, 'Завантаження на сервер...');
+
+    // XMLHttpRequest з відстеженням прогресу
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/pdf/merge', true);
+    xhr.responseType = 'blob';
+
+    // Відстежуємо прогрес завантаження
+    xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            const loadedMB = (event.loaded / (1024 * 1024)).toFixed(1);
+            const totalMB = (event.total / (1024 * 1024)).toFixed(1);
+            progress.update(fileCount, `Завантаження: ${percent}% (${loadedMB} МБ з ${totalMB} МБ)`);
+        }
+    };
+
+    // Обробка успішної відповіді
+    xhr.onload = () => {
+        if (xhr.status === 200) {
+            const blob = xhr.response;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
+            saveSessionToIndexedDB();
+        } else {
+            let errorMsg = `Сервер повернув помилку ${xhr.status}`;
             try {
-                const text = await response.text();
+                const text = xhr.responseText;
                 if (text) errorMsg += `: ${text}`;
             } catch (e) {}
-            throw new Error(errorMsg);
+            showMessage(errorMsg, 'error', 6000);
         }
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-        showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
-        await saveSessionToIndexedDB();
-    } catch (err) {
-        let userMessage = err.message;
-        if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
-            userMessage = '❌ Не вдалося підключитися до сервера. Перевірте інтернет-з\'єднання та спробуйте ще раз.';
-        } else if (err.message.includes('413') || err.message.includes('Payload Too Large')) {
-            userMessage = '❌ Загальний розмір файлів занадто великий для обробки сервером. Спробуйте об\'єднати менше файлів або зменшити їх розмір.';
-        }
-        showMessage(userMessage, 'error', 6000);
-    } finally {
         btn.disabled = false;
-    }
+    };
+
+    // Обробка помилки мережі
+    xhr.onerror = () => {
+        showMessage('❌ Не вдалося підключитися до сервера. Перевірте інтернет-з\'єднання та спробуйте ще раз.', 'error', 6000);
+        btn.disabled = false;
+    };
+
+    xhr.send(formData);
 }
 
 // ========== ПІДПИСКА НА ПОДІЇ ==========
