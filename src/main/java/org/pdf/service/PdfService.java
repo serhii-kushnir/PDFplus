@@ -8,7 +8,6 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.InputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -147,12 +146,10 @@ public class PdfService {
     }
 
     public boolean isPdfValid(byte[] fileBytes) throws IOException {
-        // 1. Перевірка сигнатури (перші 4 байти)
         if (fileBytes.length < 4) return false;
         String header = new String(fileBytes, 0, 4);
         if (!header.equals("%PDF")) return false;
 
-        // 2. Перевірка через PDFBox
         try (PDDocument doc = Loader.loadPDF(fileBytes)) {
             if (doc.getNumberOfPages() == 0) return false;
             // Перевірка на JavaScript

@@ -73,7 +73,7 @@
         </div>
     </div>
 
-    <!-- Контейнер для діаграми розподілу розмірів -->
+    <!-- Контейнер для діаграми (спочатку прихований) -->
     <div id="chartContainer" class="chart-container" style="display: none;">
         <canvas id="sizeChart"></canvas>
     </div>
@@ -112,5 +112,21 @@
         <div class="pages-grid-modal" id="modalPagesGrid"></div>
     </div>
 </div>
-</body>
+
+<!-- Модальне вікно попереднього перегляду перед об'єднанням -->
+<div id="previewMergeModal" class="pages-modal">
+    <div class="pages-modal-content">
+        <div class="pages-modal-header">
+            <h3>📄 Попередній перегляд файлів перед об'єднанням</h3>
+            <button class="close-modal-btn" id="closePreviewMergeBtn">&times;</button>
+        </div>
+        <div id="previewMergeSummary" class="preview-merge-summary" style="padding: 16px; background: var(--bg-card); border-bottom: 1px solid var(--border-color);"></div>
+        <div class="preview-merge-files" id="previewMergeFiles" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; max-height: 50vh; overflow-y: auto; background: var(--bg-modal-grid);">
+            <!-- Динамічний список файлів (Sortable) -->
+        </div>
+        <div class="pages-modal-header" style="justify-content: flex-end;">
+            <button id="confirmMergeBtn" class="btn btn--process" style="background: #e74c3c;">🔗 Підтвердити об'єднання</button>
+        </div>
+    </div>
+</div>
 </html>

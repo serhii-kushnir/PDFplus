@@ -5,141 +5,24 @@ let selectedIndices = new Set();
 let sortable = null;
 let wasSizeLimitExceeded = false;
 let searchQuery = '';
-let wasSelectedLimitExceeded = false;
+let previewSortable = null;
 
 const MAX_FILE_SIZE_MB = 100;
 const MAX_TOTAL_SIZE_MB = 100;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-// Стан сортування (зростання/спадання)
+// Стан сортування
 let sortState = {
     name: 'asc',
     size: 'asc',
     pages: 'asc'
 };
-let lastSortType = null; // 'name', 'size', 'pages'
+let lastSortType = null;
 
 // IndexedDB
 let db = null;
 const DB_NAME = 'PDFMergeSession';
 const STORE_NAME = 'files';
-
-function updateSortArrows(activeType, direction) {
-    const buttons = {
-        name: document.getElementById('sortByNameBtn'),
-        size: document.getElementById('sortBySizeBtn'),
-        pages: document.getElementById('sortByPagesBtn')
-    };
-    for (let type in buttons) {
-        const btn = buttons[type];
-        if (!btn) continue;
-        const arrowSpan = btn.querySelector('.sort-arrow');
-        if (!arrowSpan) continue;
-        if (type === activeType) {
-            arrowSpan.className = `sort-arrow ${direction === 'asc' ? 'asc' : 'desc'}`;
-        } else {
-            arrowSpan.className = 'sort-arrow';
-        }
-    }
-}
-
-function openDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            db = request.result;
-            resolve(db);
-        };
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-            }
-        };
-    });
-}
-
-async function clearSessionFromIndexedDB() {
-    if (!db) await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    await new Promise((resolve, reject) => {
-        const clearReq = store.clear();
-        clearReq.onsuccess = () => resolve();
-        clearReq.onerror = () => reject(clearReq.error);
-    });
-    await new Promise((resolve, reject) => {
-        tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
-    });
-}
-
-async function saveSessionToIndexedDB() {
-    if (!db) await openDB();
-    const itemsToStore = [];
-    for (let i = 0; i < selectedFiles.length; i++) {
-        const item = selectedFiles[i];
-        if (!item.file) continue;
-        const blob = await item.file.arrayBuffer().then(buf => new Blob([buf], { type: 'application/pdf' }));
-        itemsToStore.push({
-            id: i,
-            name: item.name,
-            size: item.size,
-            pageCount: item.pageCount,
-            thumbnailUrl: item.thumbnailUrl,
-            fileBlob: blob
-        });
-    }
-    if (itemsToStore.length === 0) {
-        await clearSessionFromIndexedDB();
-        return;
-    }
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    await new Promise((resolve, reject) => {
-        const clearReq = store.clear();
-        clearReq.onsuccess = () => resolve();
-        clearReq.onerror = () => reject(clearReq.error);
-    });
-    for (const item of itemsToStore) {
-        await new Promise((resolve, reject) => {
-            const putReq = store.put(item);
-            putReq.onsuccess = () => resolve();
-            putReq.onerror = () => reject(putReq.error);
-        });
-    }
-    await new Promise((resolve, reject) => {
-        tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
-    });
-}
-
-async function restoreSessionFromIndexedDB() {
-    if (!db) await openDB();
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const items = await new Promise((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-    if (items.length === 0) return false;
-    const restored = await Promise.all(items.map(async (item) => {
-        const file = new File([item.fileBlob], item.name, { type: 'application/pdf' });
-        return {
-            file: file,
-            name: item.name,
-            size: item.size,
-            pageCount: item.pageCount,
-            thumbnailUrl: item.thumbnailUrl,
-            allThumbnails: null
-        };
-    }));
-    selectedFiles = restored;
-    selectedIndices.clear();
-    return true;
-}
 
 // DOM elements
 const uploader = document.getElementById('uploader');
@@ -160,6 +43,30 @@ const modal = document.getElementById('pagePreviewModal');
 const modalGrid = document.getElementById('modalPagesGrid');
 const closeModalBtn = modal ? modal.querySelector('.close-modal-btn') : null;
 const filterStatsRow = document.querySelector('.filter-stats-row');
+
+// Модальне вікно попереднього перегляду перед об'єднанням
+const previewMergeModal = document.getElementById('previewMergeModal');
+const previewMergeFiles = document.getElementById('previewMergeFiles');
+const closePreviewMergeBtn = document.getElementById('closePreviewMergeBtn');
+const confirmMergeBtn = document.getElementById('confirmMergeBtn');
+
+let pendingMergeFiles = null;
+let pendingMergeCallback = null;
+
+function closePreviewMergeModal() {
+    if (previewMergeModal) previewMergeModal.classList.remove('active');
+    pendingMergeFiles = null;
+    pendingMergeCallback = null;
+}
+
+if (closePreviewMergeBtn) {
+    closePreviewMergeBtn.addEventListener('click', closePreviewMergeModal);
+}
+if (previewMergeModal) {
+    previewMergeModal.addEventListener('click', (e) => {
+        if (e.target === previewMergeModal) closePreviewMergeModal();
+    });
+}
 
 if (filterStatsRow) filterStatsRow.style.display = 'none';
 
@@ -291,6 +198,105 @@ if (hotkeyBtn) {
         closeBtn.onclick = () => modalDiv.remove();
         modalDiv.onclick = (e) => { if (e.target === modalDiv) modalDiv.remove(); };
     });
+}
+
+// ========== INDEXEDDB ==========
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            db = request.result;
+            resolve(db);
+        };
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+    });
+}
+
+async function clearSessionFromIndexedDB() {
+    if (!db) await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await new Promise((resolve, reject) => {
+        const clearReq = store.clear();
+        clearReq.onsuccess = () => resolve();
+        clearReq.onerror = () => reject(clearReq.error);
+    });
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function saveSessionToIndexedDB() {
+    if (!db) await openDB();
+    const itemsToStore = [];
+    for (let i = 0; i < selectedFiles.length; i++) {
+        const item = selectedFiles[i];
+        if (!item.file) continue;
+        const blob = await item.file.arrayBuffer().then(buf => new Blob([buf], { type: 'application/pdf' }));
+        itemsToStore.push({
+            id: i,
+            name: item.name,
+            size: item.size,
+            pageCount: item.pageCount,
+            thumbnailUrl: item.thumbnailUrl,
+            fileBlob: blob
+        });
+    }
+    if (itemsToStore.length === 0) {
+        await clearSessionFromIndexedDB();
+        return;
+    }
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    await new Promise((resolve, reject) => {
+        const clearReq = store.clear();
+        clearReq.onsuccess = () => resolve();
+        clearReq.onerror = () => reject(clearReq.error);
+    });
+    for (const item of itemsToStore) {
+        await new Promise((resolve, reject) => {
+            const putReq = store.put(item);
+            putReq.onsuccess = () => resolve();
+            putReq.onerror = () => reject(putReq.error);
+        });
+    }
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function restoreSessionFromIndexedDB() {
+    if (!db) await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const items = await new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+    if (items.length === 0) return false;
+    const restored = await Promise.all(items.map(async (item) => {
+        const file = new File([item.fileBlob], item.name, { type: 'application/pdf' });
+        return {
+            file: file,
+            name: item.name,
+            size: item.size,
+            pageCount: item.pageCount,
+            thumbnailUrl: item.thumbnailUrl,
+            allThumbnails: null
+        };
+    }));
+    selectedFiles = restored;
+    selectedIndices.clear();
+    return true;
 }
 
 // ========== СТАТИСТИКА ТА ПОВІДОМЛЕННЯ ==========
@@ -472,7 +478,7 @@ function updateCardSelectionState(card, isSelected) {
     if (checkbox) checkbox.checked = isSelected;
 }
 
-// ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД ==========
+// ========== ПОПЕРЕДНІЙ ПЕРЕГЛЯД СТОРІНОК ==========
 async function showPagePreview(index) {
     const fileItem = selectedFiles[index];
     if (!fileItem) return;
@@ -583,6 +589,7 @@ function createCardElement(data, originalIndex) {
     card.appendChild(dragHandle);
     const actions = document.createElement('div');
     actions.className = 'file__actions';
+
     const previewBtn = document.createElement('a');
     previewBtn.className = 'file__btn preview';
     previewBtn.innerHTML = '<i class="fas fa-eye"></i>';
@@ -594,6 +601,19 @@ function createCardElement(data, originalIndex) {
         const idx = parseInt(currentCard.getAttribute('data-index'), 10);
         await showPagePreview(idx);
     };
+
+    const fullPreviewBtn = document.createElement('a');
+    fullPreviewBtn.className = 'file__btn full-preview';
+    fullPreviewBtn.innerHTML = '<i class="fas fa-file-pdf"></i>';
+    fullPreviewBtn.href = 'javascript:;';
+    fullPreviewBtn.title = 'Відкрити PDF у новому вікні';
+    fullPreviewBtn.onclick = (e) => {
+        e.stopPropagation();
+        const currentCard = e.target.closest('.file-card');
+        const idx = parseInt(currentCard.getAttribute('data-index'), 10);
+        previewFullPdf(idx);
+    };
+
     const rotateBtn = document.createElement('a');
     rotateBtn.className = 'file__btn rotate';
     rotateBtn.innerHTML = '<i class="fas fa-undo-alt"></i>';
@@ -605,6 +625,7 @@ function createCardElement(data, originalIndex) {
         const idx = parseInt(currentCard.getAttribute('data-index'), 10);
         await rotateFileAtIndex(idx);
     };
+
     const removeBtn = document.createElement('a');
     removeBtn.className = 'file__btn remove';
     removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
@@ -616,10 +637,13 @@ function createCardElement(data, originalIndex) {
         const idx = parseInt(currentCard.getAttribute('data-index'), 10);
         await removeFile(idx);
     };
+
     actions.appendChild(previewBtn);
+    actions.appendChild(fullPreviewBtn);
     actions.appendChild(rotateBtn);
     actions.appendChild(removeBtn);
     card.appendChild(actions);
+
     const canvas = document.createElement('canvas');
     const img = new Image();
     img.src = data.thumbnailUrl;
@@ -645,7 +669,37 @@ function createCardElement(data, originalIndex) {
     return card;
 }
 
-// ========== ПОЧАТКОВИЙ РЕНДЕР (з фільтром та приховуванням рядка) ==========
+function previewFullPdf(index) {
+    const fileItem = selectedFiles[index];
+    if (!fileItem || !fileItem.file) {
+        showMessage('❌ Файл недоступний для перегляду', 'error');
+        return;
+    }
+    const url = URL.createObjectURL(fileItem.file);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function updateSortArrows(activeType, direction) {
+    const buttons = {
+        name: document.getElementById('sortByNameBtn'),
+        size: document.getElementById('sortBySizeBtn'),
+        pages: document.getElementById('sortByPagesBtn')
+    };
+    for (let type in buttons) {
+        const btn = buttons[type];
+        if (!btn) continue;
+        const arrowSpan = btn.querySelector('.sort-arrow');
+        if (!arrowSpan) continue;
+        if (type === activeType) {
+            arrowSpan.className = `sort-arrow ${direction === 'asc' ? 'asc' : 'desc'}`;
+        } else {
+            arrowSpan.className = 'sort-arrow';
+        }
+    }
+}
+
+// ========== ПОЧАТКОВИЙ РЕНДЕР ==========
 function renderFullGrid() {
     filesContainer.innerHTML = '';
     if (selectedFiles.length === 0) {
@@ -716,7 +770,7 @@ function initSortable() {
     });
 }
 
-// ========== ФУНКЦІЇ СОРТУВАННЯ ==========
+// ========== СОРТУВАННЯ ==========
 function sortByName() {
     if (selectedFiles.length === 0) return;
     if (lastSortType === 'name') {
@@ -1054,49 +1108,168 @@ function clearSelection() {
 function updateMergeButtons() {
     const anySelected = selectedIndices.size > 0;
     const enoughSelected = selectedIndices.size >= 2;
-
-    // Розмір усіх файлів (для кнопки "Об'єднати все")
     const totalSizeAllMB = selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024);
     const allLimitExceeded = totalSizeAllMB > MAX_TOTAL_SIZE_MB;
-
-    // Розмір лише вибраних файлів (для кнопки "Об'єднати вибрані")
     let selectedSizeMB = 0;
     for (let idx of selectedIndices) {
         selectedSizeMB += (selectedFiles[idx]?.size || 0);
     }
     selectedSizeMB /= (1024 * 1024);
     const selectedLimitExceeded = selectedSizeMB > MAX_TOTAL_SIZE_MB;
-
-    // Блокуємо кнопки
     mergeSelectedBtn.disabled = !enoughSelected || selectedLimitExceeded;
     mergeAllBtn.disabled = selectedFiles.length < 2 || allLimitExceeded;
     deleteSelectedBtn.disabled = !anySelected;
     clearSelectionBtn.disabled = !anySelected;
     selectAllBtn.disabled = (selectedIndices.size === selectedFiles.length);
     rotateSelectedBtn.disabled = !anySelected;
-
-    // Підказки через атрибут title
     if (selectedLimitExceeded) {
         mergeSelectedBtn.title = `⚠️ Загальний розмір вибраних файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${selectedSizeMB.toFixed(2)} МБ). Об'єднання неможливе.`;
     } else {
         mergeSelectedBtn.title = enoughSelected ? "" : "Виберіть принаймні 2 файли";
     }
-
     if (allLimitExceeded) {
         mergeAllBtn.title = `⚠️ Загальний розмір всіх файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${totalSizeAllMB.toFixed(2)} МБ). Об'єднання неможливе.`;
     } else {
         mergeAllBtn.title = selectedFiles.length >= 2 ? "" : "Додайте принаймні 2 файли";
     }
+}
 
-    // ТОСТ ПРИ ПЕРЕВИЩЕННІ ЛІМІТУ ВИБРАНИХ ФАЙЛІВ
-    if (selectedLimitExceeded && !wasSelectedLimitExceeded) {
-        showMessage(`⚠️ Загальний розмір ВИБРАНИХ файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${selectedSizeMB.toFixed(2)} МБ). Об'єднання заблоковано.`, 'error', 5000);
-        wasSelectedLimitExceeded = true;
-    } else if (!selectedLimitExceeded && wasSelectedLimitExceeded) {
-        // Якщо ліміт більше не перевищено – показуємо зелене сповіщення (не обов'язково, але для зручності)
-        showMessage(`✅ Розмір вибраних файлів в межах ${MAX_TOTAL_SIZE_MB} МБ. Об'єднання доступне.`, 'success', 3000);
-        wasSelectedLimitExceeded = false;
+// ========== ОБ'ЄДНАННЯ З ПОПЕРЕДНІМ ПЕРЕГЛЯДОМ ==========
+function showPreviewMerge(files, callback) {
+    pendingMergeFiles = files;
+    pendingMergeCallback = callback;
+    if (!previewMergeFiles) return;
+
+    // Загальна статистика
+    let totalPages = 0;
+    let totalSizeMB = 0;
+    const filesData = [];
+    for (let file of files) {
+        const selectedFileData = selectedFiles.find(f => f.file === file);
+        if (selectedFileData) {
+            totalPages += selectedFileData.pageCount;
+            totalSizeMB += selectedFileData.size / (1024 * 1024);
+            filesData.push(selectedFileData);
+        }
     }
+
+    const summaryDiv = document.getElementById('previewMergeSummary');
+    if (summaryDiv) {
+        summaryDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                <div><strong>📄 Файлів:</strong> ${files.length}</div>
+                <div><strong>📑 Сторінок:</strong> ${totalPages}</div>
+                <div><strong>💾 Розмір:</strong> ${totalSizeMB.toFixed(2)} MB</div>
+            </div>
+        `;
+    }
+
+    previewMergeFiles.innerHTML = '';
+    filesData.forEach((selectedFileData, idx) => {
+        const div = document.createElement('div');
+        div.className = 'preview-file-item';
+        div.setAttribute('data-original-index', idx);
+        div.setAttribute('data-file-id', selectedFileData.file.name);
+
+        // Номер
+        const numberSpan = document.createElement('span');
+        numberSpan.className = 'preview-file-number';
+        numberSpan.innerText = `${idx + 1}.`;
+
+        // Мініатюра
+        const canvas = document.createElement('canvas');
+        const img = new Image();
+        img.src = selectedFileData.thumbnailUrl;
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+        };
+        canvas.style.width = '50px';
+        canvas.style.height = 'auto';
+        canvas.style.borderRadius = '8px';
+
+        // Інформація
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'preview-file-info';
+        infoDiv.innerHTML = `
+            <div class="preview-file-name">${escapeHtml(selectedFileData.name)}</div>
+            <div class="preview-file-stats">${selectedFileData.pageCount} стор. • ${(selectedFileData.size / (1024*1024)).toFixed(2)} MB</div>
+        `;
+
+        // Кнопка відкриття в новій вкладці
+        const openBtn = document.createElement('i');
+        openBtn.className = 'fas fa-external-link-alt preview-full-link';
+        openBtn.title = 'Відкрити PDF у новій вкладці';
+        openBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const originalIndex = selectedFiles.findIndex(f => f.file === selectedFileData.file);
+            if (originalIndex !== -1) previewFullPdf(originalIndex);
+        });
+
+        // Додаємо все в рядок
+        div.appendChild(numberSpan);
+        div.appendChild(canvas);
+        div.appendChild(infoDiv);
+        div.appendChild(openBtn);
+
+        // Клік по самому рядку – нічого не відбувається (тільки перетягування)
+        // (Обробник не додається)
+
+        previewMergeFiles.appendChild(div);
+    });
+
+    // Ініціалізуємо Sortable без обмеження на ручку (перетягування всієї картки)
+    if (previewSortable) previewSortable.destroy();
+    previewSortable = new Sortable(previewMergeFiles, {
+        animation: 200,
+        onEnd: function() {
+            const items = previewMergeFiles.querySelectorAll('.preview-file-item');
+            const newOrder = [];
+            items.forEach(item => {
+                const fileId = item.getAttribute('data-file-id');
+                const file = pendingMergeFiles.find(f => f.name === fileId);
+                if (file) newOrder.push(file);
+            });
+            if (newOrder.length === pendingMergeFiles.length) {
+                pendingMergeFiles = newOrder;
+                items.forEach((item, idx) => {
+                    const numberSpan = item.querySelector('.preview-file-number');
+                    if (numberSpan) numberSpan.innerText = `${idx + 1}.`;
+                });
+                // Оновлюємо статистику
+                let newTotalPages = 0, newTotalSizeMB = 0;
+                for (let file of pendingMergeFiles) {
+                    const data = selectedFiles.find(f => f.file === file);
+                    if (data) {
+                        newTotalPages += data.pageCount;
+                        newTotalSizeMB += data.size / (1024 * 1024);
+                    }
+                }
+                if (summaryDiv) {
+                    summaryDiv.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div><strong>📄 Файлів:</strong> ${pendingMergeFiles.length}</div>
+                            <div><strong>📑 Сторінок:</strong> ${newTotalPages}</div>
+                            <div><strong>💾 Розмір:</strong> ${newTotalSizeMB.toFixed(2)} MB</div>
+                        </div>
+                    `;
+                }
+            }
+        }
+    });
+
+    if (previewMergeModal) previewMergeModal.classList.add('active');
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 async function mergeSelected() {
@@ -1104,8 +1277,6 @@ async function mergeSelected() {
         showMessage(`❌ Потрібно вибрати принаймні 2 PDF-файли для об'єднання. Вибрано: ${selectedIndices.size}`, 'error');
         return;
     }
-
-    // Перевірка ліміту вибраних файлів (на випадок, якщо кнопка з якоїсь причини активна)
     let selectedSizeMB = 0;
     for (let idx of selectedIndices) {
         selectedSizeMB += (selectedFiles[idx]?.size || 0);
@@ -1115,17 +1286,10 @@ async function mergeSelected() {
         showMessage(`❌ Загальний розмір вибраних файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${selectedSizeMB.toFixed(2)} МБ). Об'єднання неможливе.`, 'error');
         return;
     }
-
-    const fileCount = selectedIndices.size;
-    const confirmed = await showConfirm({
-        title: '🔗 Об\'єднання вибраних файлів',
-        message: `Об'єднати ${fileCount} вибраних файлів?`,
-        confirmText: 'Об\'єднати',
-        cancelText: 'Скасувати'
-    });
-    if (!confirmed) return;
     const filesToMerge = Array.from(selectedIndices).sort((a,b)=>a-b).map(i => selectedFiles[i].file);
-    await performMerge(filesToMerge, 'merged_selected.pdf', mergeSelectedBtn, fileCount);
+    showPreviewMerge(filesToMerge, async () => {
+        await performMerge(filesToMerge, 'merged_selected.pdf', mergeSelectedBtn, filesToMerge.length);
+    });
 }
 
 async function mergeAll() {
@@ -1133,38 +1297,31 @@ async function mergeAll() {
         showMessage(`❌ Додайте принаймні 2 PDF-файли для об'єднання. Зараз: ${selectedFiles.length}`, 'error');
         return;
     }
-    const fileCount = selectedFiles.length;
-    const confirmed = await showConfirm({
-        title: '🔗 Об\'єднання всіх файлів',
-        message: `Об'єднати всі ${fileCount} файлів?`,
-        confirmText: 'Об\'єднати',
-        cancelText: 'Скасувати'
-    });
-    if (!confirmed) return;
+    const totalSizeAllMB = selectedFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024);
+    if (totalSizeAllMB > MAX_TOTAL_SIZE_MB) {
+        showMessage(`❌ Загальний розмір всіх файлів перевищує ${MAX_TOTAL_SIZE_MB} МБ (${totalSizeAllMB.toFixed(2)} МБ). Об'єднання неможливе.`, 'error');
+        return;
+    }
     const allFiles = selectedFiles.map(item => item.file);
-    await performMerge(allFiles, 'merged_all.pdf', mergeAllBtn, fileCount);
+    showPreviewMerge(allFiles, async () => {
+        await performMerge(allFiles, 'merged_all.pdf', mergeAllBtn, allFiles.length);
+    });
 }
 
 async function performMerge(files, filename, btn, fileCount) {
     btn.disabled = true;
     const progress = showProgressToast('Обʼєднання PDF', fileCount);
     progress.update(0, 'Підготовка...');
-
-    // Формуємо FormData (підготовка файлів)
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
         formData.append('files', files[i]);
-        progress.update(i + 1, `Додано файл ${i + 1} з ${fileCount}`);
+        progress.update(i+1, `Додано файл ${i+1} з ${fileCount}`);
         await new Promise(r => setTimeout(r, 50));
     }
     progress.update(fileCount, 'Завантаження на сервер...');
-
-    // XMLHttpRequest з відстеженням прогресу
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/pdf/merge', true);
     xhr.responseType = 'blob';
-
-    // Відстежуємо прогрес завантаження
     xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
             const percent = Math.round((event.loaded / event.total) * 100);
@@ -1173,8 +1330,6 @@ async function performMerge(files, filename, btn, fileCount) {
             progress.update(fileCount, `Завантаження: ${percent}% (${loadedMB} МБ з ${totalMB} МБ)`);
         }
     };
-
-    // Обробка успішної відповіді
     xhr.onload = () => {
         if (xhr.status === 200) {
             const blob = xhr.response;
@@ -1196,15 +1351,51 @@ async function performMerge(files, filename, btn, fileCount) {
         }
         btn.disabled = false;
     };
-
-    // Обробка помилки мережі
     xhr.onerror = () => {
         showMessage('❌ Не вдалося підключитися до сервера. Перевірте інтернет-з\'єднання та спробуйте ще раз.', 'error', 6000);
         btn.disabled = false;
     };
-
     xhr.send(formData);
 }
+
+// ========== ДІАГРАМА ==========
+let sizeChart = null;
+const chartCanvas = document.getElementById('sizeChart');
+const chartContainerElem = document.getElementById('chartContainer');
+
+function updateChart() {
+    if (!chartCanvas || !chartContainerElem) return;
+    if (selectedFiles.length === 0) {
+        if (chartContainerElem) chartContainerElem.style.display = 'none';
+        if (sizeChart) { sizeChart.destroy(); sizeChart = null; }
+        return;
+    }
+    if (chartContainerElem.style.display === 'none') return;
+    chartContainerElem.style.display = 'block';
+    const labels = selectedFiles.map((f, i) => `Файл ${i+1}`);
+    const sizes = selectedFiles.map(f => f.size / (1024 * 1024));
+    const isDark = document.body.classList.contains('dark');
+    const textColor = isDark ? '#f1f5f9' : '#1f2a3e';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    if (sizeChart) sizeChart.destroy();
+    sizeChart = new Chart(chartCanvas, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Розмір (МБ)', data: sizes, backgroundColor: 'rgba(231, 76, 60, 0.7)', borderColor: '#e74c3c', borderWidth: 1, borderRadius: 6 }] },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { labels: { color: textColor } }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(2)} МБ` } } },
+            scales: {
+                y: { title: { display: true, text: 'Розмір (МБ)', color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } },
+                x: { ticks: { color: textColor, maxRotation: 45, minRotation: 45 }, grid: { color: gridColor } }
+            }
+        }
+    });
+}
+
+const themeObserver = new MutationObserver(() => {
+    if (sizeChart && chartContainerElem && chartContainerElem.style.display !== 'none') updateChart();
+});
+themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 // ========== ПІДПИСКА НА ПОДІЇ ==========
 if (uploader) {
@@ -1239,21 +1430,17 @@ if (searchInput) {
     });
 }
 
-// ========== ПІДКЛЮЧЕННЯ КНОПОК СОРТУВАННЯ ТА ДІАГРАМИ ==========
+// ========== КНОПКИ СОРТУВАННЯ ТА ДІАГРАМИ ==========
 document.addEventListener('DOMContentLoaded', () => {
     const sortByNameBtn = document.getElementById('sortByNameBtn');
     const sortBySizeBtn = document.getElementById('sortBySizeBtn');
     const sortByPagesBtn = document.getElementById('sortByPagesBtn');
-
     if (sortByNameBtn) sortByNameBtn.addEventListener('click', sortByName);
     if (sortBySizeBtn) sortBySizeBtn.addEventListener('click', sortBySize);
     if (sortByPagesBtn) sortByPagesBtn.addEventListener('click', sortByPages);
-
     const toggleChartBtn = document.getElementById('toggleChartBtn');
-    const chartContainerElem = document.getElementById('chartContainer');
-    let chartVisible = false;
-
     if (toggleChartBtn && chartContainerElem) {
+        let chartVisible = false;
         toggleChartBtn.addEventListener('click', () => {
             if (chartVisible) {
                 chartContainerElem.style.display = 'none';
@@ -1263,75 +1450,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 chartContainerElem.style.display = 'block';
                 toggleChartBtn.innerHTML = '📊 Сховати';
                 chartVisible = true;
-                if (selectedFiles.length > 0 && typeof sizeChart !== 'undefined' && !sizeChart) {
-                    updateChart();
-                }
+                if (selectedFiles.length > 0 && !sizeChart) updateChart();
             }
         });
     }
 });
 
-// ========== ДІАГРАМА РОЗПОДІЛУ РОЗМІРІВ ==========
-let sizeChart = null;
-const chartCanvas = document.getElementById('sizeChart');
-const chartContainerElem = document.getElementById('chartContainer');
-
-function updateChart() {
-    if (!chartCanvas || !chartContainerElem) return;
-    if (selectedFiles.length === 0) {
-        if (chartContainerElem) chartContainerElem.style.display = 'none';
-        if (sizeChart) { sizeChart.destroy(); sizeChart = null; }
-        return;
-    }
-    if (chartContainerElem.style.display === 'none') return;
-    chartContainerElem.style.display = 'block';
-    const labels = selectedFiles.map((f, i) => `Файл ${i+1}`);
-    const sizes = selectedFiles.map(f => f.size / (1024 * 1024));
-    const isDark = document.body.classList.contains('dark');
-    const textColor = isDark ? '#f1f5f9' : '#1f2a3e';
-    const gridColor = isDark ? '#334155' : '#e2e8f0';
-    if (sizeChart) sizeChart.destroy();
-    sizeChart = new Chart(chartCanvas, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Розмір (МБ)',
-                data: sizes,
-                backgroundColor: 'rgba(231, 76, 60, 0.7)',
-                borderColor: '#e74c3c',
-                borderWidth: 1,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { labels: { color: textColor, font: { size: 12 } } },
-                tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toFixed(2)} МБ` } }
-            },
-            scales: {
-                y: {
-                    title: { display: true, text: 'Розмір (МБ)', color: textColor },
-                    ticks: { color: textColor },
-                    grid: { color: gridColor }
-                },
-                x: {
-                    ticks: { color: textColor, maxRotation: 45, minRotation: 45 },
-                    grid: { color: gridColor }
-                }
-            }
+// ========== ПІДТВЕРДЖЕННЯ ОБ'ЄДНАННЯ ==========
+if (confirmMergeBtn) {
+    confirmMergeBtn.addEventListener('click', () => {
+        if (pendingMergeCallback) {
+            pendingMergeCallback();
+            closePreviewMergeModal();
         }
     });
 }
-
-const themeObserver = new MutationObserver(() => {
-    if (sizeChart && chartContainerElem && chartContainerElem.style.display !== 'none') {
-        updateChart();
-    }
-});
-themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 // ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
 (async function init() {
