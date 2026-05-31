@@ -12,7 +12,7 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // Стан сортування (зростання/спадання)
 let sortState = {
-    name: 'asc',   // 'asc' або 'desc'
+    name: 'asc',
     size: 'asc',
     pages: 'asc'
 };
@@ -158,6 +158,9 @@ const topSidebar = document.querySelector('.tool__sidebar.top-sidebar');
 const modal = document.getElementById('pagePreviewModal');
 const modalGrid = document.getElementById('modalPagesGrid');
 const closeModalBtn = modal ? modal.querySelector('.close-modal-btn') : null;
+const filterStatsRow = document.querySelector('.filter-stats-row');
+
+if (filterStatsRow) filterStatsRow.style.display = 'none';
 
 function closeModal() {
     if (modal) {
@@ -424,10 +427,20 @@ async function rotateFile(file, angle) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('angle', angle);
-    const res = await fetch('/api/pdf/rotate', { method: 'POST', body: formData });
-    if (!res.ok) throw new Error('Помилка повороту');
-    const blob = await res.blob();
-    return new File([blob], file.name, { type: 'application/pdf' });
+    try {
+        const res = await fetch('/api/pdf/rotate', { method: 'POST', body: formData });
+        if (!res.ok) {
+            const errorText = await res.text().catch(() => 'Помилка сервера');
+            throw new Error(`Сервер повернув помилку ${res.status}: ${errorText}`);
+        }
+        const blob = await res.blob();
+        return new File([blob], file.name, { type: 'application/pdf' });
+    } catch (err) {
+        if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
+            throw new Error('❌ Не вдалося підключитися до сервера. Перевірте з\'єднання та спробуйте ще раз.');
+        }
+        throw err;
+    }
 }
 
 function updateCardSelectionState(card, isSelected) {
@@ -610,7 +623,7 @@ function createCardElement(data, originalIndex) {
     return card;
 }
 
-// ========== ПОЧАТКОВИЙ РЕНДЕР (з фільтром) ==========
+// ========== ПОЧАТКОВИЙ РЕНДЕР (з фільтром та приховуванням рядка) ==========
 function renderFullGrid() {
     filesContainer.innerHTML = '';
     if (selectedFiles.length === 0) {
@@ -618,18 +631,19 @@ function renderFullGrid() {
         if (sortable) sortable.destroy();
         sortable = null;
         updateStats();
+        if (filterStatsRow) filterStatsRow.style.display = 'none';
         return;
     }
+    if (filterStatsRow) filterStatsRow.style.display = 'flex';
     for (let i = 0; i < selectedFiles.length; i++) {
         const card = createCardElement(selectedFiles[i], i);
         filesContainer.appendChild(card);
     }
     initSortable();
     updateStats();
-    applyFilter();   // застосовуємо фільтр після рендеру
+    applyFilter();
 }
 
-// ========== ДОДАВАННЯ НОВОЇ КАРТКИ ==========
 function addNewCard(fileData, newIndex) {
     const card = createCardElement(fileData, newIndex);
     filesContainer.appendChild(card);
@@ -644,11 +658,11 @@ function addNewCard(fileData, newIndex) {
             card.classList.add('hidden');
         }
     }
+    if (selectedFiles.length === 1 && filterStatsRow) filterStatsRow.style.display = 'flex';
     updateStats();
     updateMergeButtons();
 }
 
-// ========== СОРТУВАННЯ (Drag&Drop) ==========
 function initSortable() {
     if (sortable) sortable.destroy();
     if (!filesContainer || !filesContainer.isConnected) return;
@@ -680,7 +694,7 @@ function initSortable() {
     });
 }
 
-// ========== ФУНКЦІЇ СОРТУВАННЯ (ЗРОСТАННЯ/СПАДАННЯ) ==========
+// ========== ФУНКЦІЇ СОРТУВАННЯ ==========
 function sortByName() {
     if (selectedFiles.length === 0) return;
     if (lastSortType === 'name') {
@@ -823,6 +837,7 @@ async function removeFile(index) {
         if (sortable) sortable.destroy();
         sortable = null;
         await clearSessionFromIndexedDB();
+        if (filterStatsRow) filterStatsRow.style.display = 'none';
     } else {
         applyFilter();
     }
@@ -866,8 +881,10 @@ async function deleteSelected() {
         filesContainer.style.display = 'none';
         topSidebar.style.display = 'none';
         await clearSessionFromIndexedDB();
+        if (filterStatsRow) filterStatsRow.style.display = 'none';
     } else {
         applyFilter();
+        if (filterStatsRow) filterStatsRow.style.display = 'flex';
     }
     progress.update(fileCount, `Видалено ${fileCount} файлів.`);
     updateMergeButtons();
@@ -937,7 +954,7 @@ async function rotateFileAtIndex(index) {
         showMessage(`🔄 Повернуто: ${displayName}`, 'success');
         await saveSessionToIndexedDB();
     } catch (err) {
-        showMessage(`❌ Помилка повороту ${displayName}: ${err.message}`, 'error');
+        showMessage(`❌ ${err.message}`, 'error');
     }
 }
 
@@ -969,7 +986,7 @@ async function rotateSelected() {
             updateSingleCard(idx);
             successCount++;
         } catch (err) {
-            showMessage(`❌ Помилка повороту файлу "${selectedFiles[idx].name}": ${err.message}`, 'error');
+            showMessage(`❌ ${err.message}`, 'error');
         }
     }
     progress.update(fileCount, `Завершено. Повернуто ${successCount} файлів.`);
@@ -1080,19 +1097,31 @@ async function performMerge(files, filename, btn, fileCount) {
     progress.update(fileCount, 'Надсилання на сервер...');
     try {
         const response = await fetch('/api/pdf/merge', { method: 'POST', body: formData });
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-            showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
-            await saveSessionToIndexedDB();
-        } else throw new Error(await response.text() || 'Помилка сервера');
+        if (!response.ok) {
+            let errorMsg = `Сервер повернув помилку ${response.status}`;
+            try {
+                const text = await response.text();
+                if (text) errorMsg += `: ${text}`;
+            } catch (e) {}
+            throw new Error(errorMsg);
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        showMessage(`✅ Об'єднання виконано! ${fileCount} файлів успішно об'єднано.`, 'success');
+        await saveSessionToIndexedDB();
     } catch (err) {
-        showMessage(`❌ Помилка: ${err.message}`, 'error');
+        let userMessage = err.message;
+        if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
+            userMessage = '❌ Не вдалося підключитися до сервера. Перевірте інтернет-з\'єднання та спробуйте ще раз.';
+        } else if (err.message.includes('413') || err.message.includes('Payload Too Large')) {
+            userMessage = '❌ Загальний розмір файлів занадто великий для обробки сервером. Спробуйте об\'єднати менше файлів або зменшити їх розмір.';
+        }
+        showMessage(userMessage, 'error', 6000);
     } finally {
         btn.disabled = false;
     }
@@ -1141,22 +1170,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortBySizeBtn) sortBySizeBtn.addEventListener('click', sortBySize);
     if (sortByPagesBtn) sortByPagesBtn.addEventListener('click', sortByPages);
 
-    // Кнопка перемикання діаграми
     const toggleChartBtn = document.getElementById('toggleChartBtn');
-    const chartContainer = document.getElementById('chartContainer');
+    const chartContainerElem = document.getElementById('chartContainer');
     let chartVisible = false;
 
-    if (toggleChartBtn && chartContainer) {
+    if (toggleChartBtn && chartContainerElem) {
         toggleChartBtn.addEventListener('click', () => {
             if (chartVisible) {
-                chartContainer.style.display = 'none';
+                chartContainerElem.style.display = 'none';
                 toggleChartBtn.innerHTML = '📊 Діаграма';
                 chartVisible = false;
             } else {
-                chartContainer.style.display = 'block';
+                chartContainerElem.style.display = 'block';
                 toggleChartBtn.innerHTML = '📊 Сховати';
                 chartVisible = true;
-                // Якщо діаграма ще не створена, але файли є – оновити
                 if (selectedFiles.length > 0 && typeof sizeChart !== 'undefined' && !sizeChart) {
                     updateChart();
                 }
@@ -1168,19 +1195,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========== ДІАГРАМА РОЗПОДІЛУ РОЗМІРІВ ==========
 let sizeChart = null;
 const chartCanvas = document.getElementById('sizeChart');
-const chartContainer = document.getElementById('chartContainer');
+const chartContainerElem = document.getElementById('chartContainer');
 
 function updateChart() {
-    if (!chartCanvas || !chartContainer) return;
+    if (!chartCanvas || !chartContainerElem) return;
     if (selectedFiles.length === 0) {
-        if (chartContainer) chartContainer.style.display = 'none';
+        if (chartContainerElem) chartContainerElem.style.display = 'none';
         if (sizeChart) { sizeChart.destroy(); sizeChart = null; }
         return;
     }
-    // Якщо діаграма була прихована, не показуємо її автоматично, тільки якщо вона видима або якщо це перший виклик (опціонально)
-    // Але для зручності покажемо, якщо вона ще не створена або видима. Для простоти залишимо так:
-    if (chartContainer.style.display === 'none') return; // не показуємо, якщо прихована вручну
-    chartContainer.style.display = 'block';
+    if (chartContainerElem.style.display === 'none') return;
+    chartContainerElem.style.display = 'block';
     const labels = selectedFiles.map((f, i) => `Файл ${i+1}`);
     const sizes = selectedFiles.map(f => f.size / (1024 * 1024));
     const isDark = document.body.classList.contains('dark');
@@ -1222,9 +1247,8 @@ function updateChart() {
     });
 }
 
-// Стежимо за зміною теми, щоб оновити діаграму
 const themeObserver = new MutationObserver(() => {
-    if (sizeChart && chartContainer.style.display !== 'none') {
+    if (sizeChart && chartContainerElem && chartContainerElem.style.display !== 'none') {
         updateChart();
     }
 });
