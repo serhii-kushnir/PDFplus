@@ -239,6 +239,23 @@ document.addEventListener('keydown', (e) => {
         const hotkeyBtn = document.getElementById('hotkeyInfoBtn');
         if (hotkeyBtn) hotkeyBtn.click();
     }
+    else if (e.ctrlKey && code === 'Digit1') {
+        e.preventDefault();
+        if (selectedFiles.length > 0) sortByName();
+    }
+    else if (e.ctrlKey && code === 'Digit2') {
+        e.preventDefault();
+        if (selectedFiles.length > 0) sortBySize();
+    }
+    else if (e.ctrlKey && code === 'Digit3') {
+        e.preventDefault();
+        if (selectedFiles.length > 0) sortByPages();
+    }
+    else if (e.ctrlKey && code === 'Backquote') {
+        e.preventDefault();
+        const toggleChartBtn = document.getElementById('toggleChartBtn');
+        if (toggleChartBtn) toggleChartBtn.click();
+    }
 });
 
 // ========== ІНФОРМАЦІЯ ПРО ГАРЯЧІ КЛАВІШІ ==========
@@ -261,6 +278,10 @@ if (hotkeyBtn) {
                     <div class="hotkey-key">Ctrl + D</div><div class="hotkey-desc">🔗 Об'єднати всі файли</div>
                     <div class="hotkey-key">Escape</div><div class="hotkey-desc">✖️ Очистити вибір / Закрити діалог / Закрити перегляд</div>
                     <div class="hotkey-key">Ctrl + E</div><div class="hotkey-desc">➕ Додати ще файли</div>
+                    <div class="hotkey-key">Ctrl + 1</div><div class="hotkey-desc">📄 Сортувати за назвою</div>
+                    <div class="hotkey-key">Ctrl + 2</div><div class="hotkey-desc">📦 Сортувати за розміром</div>
+                    <div class="hotkey-key">Ctrl + 3</div><div class="hotkey-desc">📑 Сортувати за сторінками</div>
+                    <div class="hotkey-key">Ctrl + \`</div><div class="hotkey-desc">📊 Показати/сховати діаграму</div>
                 </div>
                 <button class="close-hotkey-btn">Зрозуміло</button>
             </div>
