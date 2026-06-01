@@ -1022,15 +1022,21 @@ function renderFilesList() {
             <div>💾Розмір: ${totalSizeMB.toFixed(2)} MB</div>
         </div>`;
     }
-    previewMergeFiles.innerHTML = '';
+
+    // Скидаємо всі стилі, які могли залишитися від сітки
     previewMergeFiles.style.display = 'flex';
     previewMergeFiles.style.flexDirection = 'column';
     previewMergeFiles.style.gap = '12px';
+    previewMergeFiles.style.gridTemplateColumns = '';
+    previewMergeFiles.style.width = '100%';
+    previewMergeFiles.style.minHeight = '';
+    previewMergeFiles.innerHTML = '';
 
     filesData.forEach((selectedFileData, idx) => {
         const div = document.createElement('div');
         div.className = 'preview-file-item';
         div.setAttribute('data-file-id', selectedFileData.file.name);
+        div.style.width = '100%';  // кожен елемент на всю ширину
 
         const numberSpan = document.createElement('span');
         numberSpan.className = 'preview-file-number';
@@ -1070,9 +1076,10 @@ function renderFilesList() {
     });
 }
 
-// Рендер всіх сторінок у вигляді сітки
+// Рендер всіх сторінок у вигляді сітки з красивим лоадером та прогресом
 async function renderAllPages() {
     if (!pendingMergeFiles) return;
+
     let totalPages = 0, totalSizeMB = 0;
     for (let file of pendingMergeFiles) {
         const selectedFileData = selectedFiles.find(f => f.file === file);
@@ -1081,6 +1088,7 @@ async function renderAllPages() {
             totalSizeMB += selectedFileData.size / (1024 * 1024);
         }
     }
+
     const summaryDiv = document.getElementById('previewMergeSummary');
     if (summaryDiv) {
         summaryDiv.innerHTML = `<div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
@@ -1089,12 +1097,27 @@ async function renderAllPages() {
             <div>💾Розмір: ${totalSizeMB.toFixed(2)} MB</div>
         </div>`;
     }
-    previewMergeFiles.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Завантаження сторінок...</div>';
-    previewMergeFiles.style.display = 'grid';
-    previewMergeFiles.style.gridTemplateColumns = 'repeat(auto-fill, minmax(140px, 1fr))';
-    previewMergeFiles.style.gap = '20px';
+
+    // Скидаємо стилі контейнера для сітки
+    previewMergeFiles.style.display = 'flex';
+    previewMergeFiles.style.flexDirection = 'column';
+    previewMergeFiles.style.alignItems = 'center';
+    previewMergeFiles.style.justifyContent = 'center';
+    previewMergeFiles.style.minHeight = '400px';
+    previewMergeFiles.style.gridTemplateColumns = '';
+    previewMergeFiles.innerHTML = `
+        <div class="loader"></div>
+        <div class="progress-container-modal" style="width: 80%; margin-top: 20px;">
+            <div class="progress-bar-modal" style="width: 0%; height: 6px; background: #e74c3c; border-radius: 3px;"></div>
+        </div>
+        <p id="modalProgressText" style="margin-top: 12px; color: var(--text-secondary);">Завантаження сторінок... 0 / ${totalPages}</p>
+    `;
 
     let allPages = [];
+    let loadedCount = 0;
+    const progressBar = previewMergeFiles.querySelector('.progress-bar-modal');
+    const progressText = previewMergeFiles.querySelector('#modalProgressText');
+
     for (let file of pendingMergeFiles) {
         const selectedFileData = selectedFiles.find(f => f.file === file);
         if (selectedFileData) {
@@ -1106,10 +1129,26 @@ async function renderAllPages() {
                     thumbnailUrl: thumbnails[i],
                     pageNumber: i + 1
                 });
+                loadedCount++;
+                if (progressBar && progressText) {
+                    const percent = (loadedCount / totalPages) * 100;
+                    progressBar.style.width = `${percent}%`;
+                    progressText.innerText = `Завантаження сторінок... ${loadedCount} / ${totalPages}`;
+                }
+                if (loadedCount % 5 === 0) await new Promise(r => setTimeout(r, 10));
             }
         }
     }
+
+    // Перемикаємось на відображення сітки
+    previewMergeFiles.style.display = 'grid';
+    previewMergeFiles.style.gridTemplateColumns = 'repeat(auto-fill, minmax(140px, 1fr))';
+    previewMergeFiles.style.gap = '20px';
+    previewMergeFiles.style.minHeight = '';
+    previewMergeFiles.style.alignItems = '';
+    previewMergeFiles.style.justifyContent = '';
     previewMergeFiles.innerHTML = '';
+
     allPages.forEach(page => {
         const card = document.createElement('div');
         card.className = 'modal-page-card';
