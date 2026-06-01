@@ -144,4 +144,23 @@ public class PdfService {
             return baos.toByteArray();
         }
     }
+
+    public boolean isPdfValid(byte[] fileBytes) throws IOException {
+        if (fileBytes.length < 4) return false;
+        String header = new String(fileBytes, 0, 4);
+        if (!header.equals("%PDF")) return false;
+
+        try (PDDocument doc = Loader.loadPDF(fileBytes)) {
+            if (doc.getNumberOfPages() == 0) return false;
+            // Перевірка на JavaScript
+            if (doc.getDocumentCatalog().getNames() != null &&
+                    doc.getDocumentCatalog().getNames().getJavaScript() != null &&
+                    !doc.getDocumentCatalog().getNames().getJavaScript().getNames().isEmpty()) {
+                return false;
+            }
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
+    }
 }

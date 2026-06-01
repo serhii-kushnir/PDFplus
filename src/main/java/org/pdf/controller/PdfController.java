@@ -3,6 +3,8 @@ package org.pdf.controller;
 import org.pdf.model.FileMetadata;
 import org.pdf.service.FileStorageService;
 import org.pdf.service.PdfService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -59,9 +61,17 @@ public class PdfController {
     public ResponseEntity<byte[]> rotatePdf(@RequestParam("file") MultipartFile file,
                                             @RequestParam("angle") int angle) {
         try {
-            byte[] rotatedPdf = pdfService.rotatePdf(file.getBytes(), angle);
+            byte[] bytes = file.getBytes();
+            if (!pdfService.isPdfValid(bytes)) {
+                System.out.println("ПОМИЛКА: Невірний PDF у rotate - " + file.getOriginalFilename());
+                return ResponseEntity.badRequest()
+                        .body(("Файл " + file.getOriginalFilename() + " некоректний або містить JavaScript").getBytes());
+            }
+            byte[] rotatedPdf = pdfService.rotatePdf(bytes, angle);
+            System.out.println("УСПІХ: Повернуто файл " + file.getOriginalFilename());
             return buildPdfResponse(rotatedPdf, "rotated.pdf");
         } catch (IOException e) {
+            System.err.println("ПОМИЛКА: rotate - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -71,9 +81,17 @@ public class PdfController {
                                              @RequestParam("page") int pageNumber,
                                              @RequestParam("angle") int angle) {
         try {
-            byte[] rotated = pdfService.rotatePage(file.getBytes(), pageNumber, angle);
+            byte[] bytes = file.getBytes();
+            if (!pdfService.isPdfValid(bytes)) {
+                System.out.println("ПОМИЛКА: Невірний PDF у rotate-page - " + file.getOriginalFilename());
+                return ResponseEntity.badRequest()
+                        .body(("Файл " + file.getOriginalFilename() + " некоректний або містить JavaScript").getBytes());
+            }
+            byte[] rotated = pdfService.rotatePage(bytes, pageNumber, angle);
+            System.out.println("УСПІХ: Повернуто сторінку " + pageNumber + " файлу " + file.getOriginalFilename());
             return buildPdfResponse(rotated, "rotated.pdf");
         } catch (IOException e) {
+            System.err.println("ПОМИЛКА: rotate-page - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -82,31 +100,51 @@ public class PdfController {
     public ResponseEntity<byte[]> extractPages(@RequestParam("file") MultipartFile file,
                                                @RequestParam("pages") String pagesJson) {
         try {
+            byte[] bytes = file.getBytes();
+            if (!pdfService.isPdfValid(bytes)) {
+                System.out.println("ПОМИЛКА: Невірний PDF у extract-pages - " + file.getOriginalFilename());
+                return ResponseEntity.badRequest()
+                        .body(("Файл " + file.getOriginalFilename() + " некоректний або містить JavaScript").getBytes());
+            }
             List<Integer> pageNumbers = new ObjectMapper().readValue(pagesJson,
                     new TypeReference<List<Integer>>() {});
-            // Використовуємо метод для ZIP-архіву
-            byte[] zipData = pdfService.extractPagesToZip(file.getBytes(), pageNumbers);
+            byte[] zipData = pdfService.extractPagesToZip(bytes, pageNumbers);
+            System.out.println("УСПІХ: Витягнуто сторінки " + pageNumbers + " з файлу " + file.getOriginalFilename());
             return buildZipResponse(zipData, "extracted_pages.zip");
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("ПОМИЛКА: extract-pages - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping(value = "/merge", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<byte[]> mergePdfs(@RequestParam("files") List<MultipartFile> files) {
+        for (MultipartFile file : files) {
+            try {
+                byte[] bytes = file.getBytes();
+                if (!pdfService.isPdfValid(bytes)) {
+                    System.out.println("ПОМИЛКА: Невірний PDF у merge - " + file.getOriginalFilename());
+                    return ResponseEntity.badRequest()
+                            .body(("Файл " + file.getOriginalFilename() + " некоректний або містить JavaScript").getBytes());
+                }
+            } catch (IOException e) {
+                System.err.println("ПОМИЛКА: merge - перевірка файлу " + file.getOriginalFilename() + " - " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(("Помилка перевірки файлу " + file.getOriginalFilename()).getBytes());
+            }
+        }
         try {
             byte[] mergedPdf = pdfService.mergePdfs(files);
             String fileId = UUID.randomUUID().toString();
             String filename = "merged_" + fileId + ".pdf";
             Path filePath = Paths.get(uploadDir, filename);
             Files.write(filePath, mergedPdf);
-
             FileMetadata metadata = new FileMetadata(fileId, "merged_result.pdf", filePath.toString(), 60);
             storageService.saveMetadata(metadata);
-
+            System.out.println("УСПІХ: Об'єднано " + files.size() + " файлів");
             return buildPdfResponse(mergedPdf, "merged_result.pdf");
         } catch (IOException e) {
+            System.err.println("ПОМИЛКА: merge - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -150,21 +188,25 @@ public class PdfController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("order") String orderJson) {
         try {
-            byte[] originalBytes = file.getBytes();
+            byte[] bytes = file.getBytes();
+            if (!pdfService.isPdfValid(bytes)) {
+                System.out.println("ПОМИЛКА: Невірний PDF у organize - " + file.getOriginalFilename());
+                return ResponseEntity.badRequest()
+                        .body(("Файл " + file.getOriginalFilename() + " некоректний або містить JavaScript").getBytes());
+            }
             List<Integer> pageOrder = new ObjectMapper().readValue(orderJson,
                     new TypeReference<List<Integer>>() {});
-            byte[] organizedPdf = pdfService.organizePdf(originalBytes, pageOrder);
-
+            byte[] organizedPdf = pdfService.organizePdf(bytes, pageOrder);
             String fileId = UUID.randomUUID().toString();
             String filename = "organized_" + fileId + ".pdf";
             Path filePath = Paths.get(uploadDir, filename);
             Files.write(filePath, organizedPdf);
-
             FileMetadata metadata = new FileMetadata(fileId, "organized_result.pdf", filePath.toString(), 60);
             storageService.saveMetadata(metadata);
-
+            System.out.println("УСПІХ: Організовано файл " + file.getOriginalFilename());
             return buildPdfResponse(organizedPdf, "organized_result.pdf");
         } catch (IOException e) {
+            System.err.println("ПОМИЛКА: organize - " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

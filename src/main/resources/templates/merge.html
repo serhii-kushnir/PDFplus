@@ -55,7 +55,6 @@
         </div>
     </div>
 
-    <!-- Рядок: фільтр зліва, кнопки сортування, статистика справа -->
     <div class="filter-stats-row">
         <div class="filter-wrapper">
             <input type="text" id="searchInput" placeholder="🔍 Фільтр за назвою..." class="search-input">
@@ -63,17 +62,17 @@
         <div class="sort-buttons-group">
             <button id="sortByNameBtn" class="sort-btn" title="Сортувати за назвою">📄 Ім'я <span class="sort-arrow"></span></button>
             <button id="sortBySizeBtn" class="sort-btn" title="Сортувати за розміром">📦 Розмір <span class="sort-arrow"></span></button>
-            <button id="sortByPagesBtn" class="sort-btn" title="Сортувати за сторінками">📑 Сторінка <span class="sort-arrow"></span></button>
+            <button id="sortByPagesBtn" class="sort-btn" title="Сортувати за сторінками">📑 Стор. <span class="sort-arrow"></span></button>
             <button id="toggleChartBtn" class="sort-btn" title="Показати/сховати діаграму">📊 Діаграма</button>
         </div>
         <div id="statsInfo" class="stats-info" style="display: none;">
-            <span id="totalFiles">0</span> файлів,
-            <span id="totalPages">0</span> сторінок,
-            <span id="totalSize">0</span> MB
+            <span>📄Файлів: <span id="totalFiles">0</span></span>
+            <span>📑Сторінок: <span id="totalPages">0</span></span>
+            <span>💾Розмір: <span id="totalSize">0</span> MB</span>
         </div>
     </div>
 
-    <!-- Контейнер для діаграми розподілу розмірів -->
+    <!-- Контейнер для діаграми (спочатку прихований) -->
     <div id="chartContainer" class="chart-container" style="display: none;">
         <canvas id="sizeChart"></canvas>
     </div>
@@ -102,15 +101,36 @@
 <div id="pagePreviewModal" class="pages-modal">
     <div class="pages-modal-content">
         <div class="pages-modal-header">
-            <div class="modal-title-info">
-                <span class="modal-file-icon">📄</span>
-                <span id="modalFileName" class="modal-file-name"></span>
-                <span id="modalFileStats" class="modal-file-stats"></span>
+            <h3>📄 Попередній перегляд</h3>
+            <div class="page-preview-info">
+                <span class="page-preview-icon">📄</span>
+                <span id="modalFileName" class="page-preview-name"></span>
+                <span id="modalFileStats" class="page-preview-stats"></span>
             </div>
             <button class="close-modal-btn">&times;</button>
         </div>
         <div class="pages-grid-modal" id="modalPagesGrid"></div>
     </div>
 </div>
+
+<!-- Модальне вікно попереднього перегляду перед об'єднанням -->
+<div id="previewMergeModal" class="pages-modal">
+    <div class="pages-modal-content">
+        <div class="pages-modal-header">
+            <h3>📄 Попередній перегляд перед об'єднанням</h3>
+            <div class="preview-tabs">
+                <button id="previewFilesTab" class="preview-tab active">📋 Файли</button>
+                <button id="previewPagesTab" class="preview-tab">📄 Всі сторінки</button>
+            </div>
+            <button class="close-modal-btn" id="closePreviewMergeBtn">&times;</button>
+        </div>
+        <div class="preview-merge-files" id="previewMergeFiles"></div>
+        <div class="preview-merge-footer">
+            <div id="previewMergeSummary" class="preview-merge-summary"></div>
+            <button id="confirmMergeBtn" class="btn btn--process">🔗 Підтвердити об'єднання</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
