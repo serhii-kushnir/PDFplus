@@ -1317,3 +1317,98 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
     cursor: not-allowed;
     pointer-events: none;
 }
+
+/* ===== УНІФІКАЦІЯ СТИЛІВ МОДАЛЬНИХ ВІКОН ===== */
+/* Перегляд сторінок – такий самий вигляд, як перед об'єднанням */
+.pages-modal .pages-modal-content {
+    background: var(--bg-card) !important;
+    border-radius: 28px !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important;
+}
+.pages-modal .pages-modal-header {
+    background: var(--bg-modal-header) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 16px 24px !important;
+}
+.pages-modal .pages-grid-modal {
+    background: var(--bg-modal-grid) !important;
+    padding: 24px !important;
+    gap: 20px !important;
+}
+/* Картки сторінок – однакові з картками у вкладці "Всі сторінки" */
+.pages-modal .modal-page-card {
+    background: var(--bg-card) !important;
+    border-radius: 16px !important;
+    padding: 10px !important;
+    text-align: center !important;
+    border: 1px solid var(--border-color) !important;
+    transition: all 0.2s !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+}
+.pages-modal .modal-page-card:hover {
+    transform: translateY(-4px) !important;
+    border-color: #e74c3c !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
+}
+.pages-modal .modal-page-card canvas {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1.4 !important;
+    object-fit: contain !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+    background: #f8fafc !important;
+}
+.pages-modal .modal-page-card span {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    text-align: center !important;
+    word-break: break-word !important;
+    margin-top: 8px !important;
+}
+
+..page-preview-info {
+     display: flex;
+     align-items: center;
+     gap: 8px;
+     background: var(--stats-bg);
+     padding: 6px 16px;
+     border-radius: 40px;
+     font-size: 0.85rem;
+     color: var(--stats-text);
+     margin-left: auto;
+ }
+ .page-preview-icon {
+     font-size: 1rem;
+ }
+.page-preview-name {
+    font-weight: 600;
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.page-preview-stats {
+    font-weight: 500;
+}
+@media (max-width: 640px) {
+    .pages-modal-header {
+        flex-wrap: wrap;
+    }
+    .page-preview-info {
+        margin-left: 0;
+        order: 2;
+        width: 100%;
+        justify-content: center;
+    }
+    .page-preview-name {
+        white-space: normal;
+        max-width: none;
+        text-align: center;
+    }
+}

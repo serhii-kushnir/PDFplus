@@ -421,9 +421,12 @@ function updateCardSelectionState(card, isSelected) {
 async function showPagePreview(index) {
     const fileItem = selectedFiles[index];
     if (!fileItem) return;
-    document.getElementById('modalFileName').innerText = fileItem.name;
+
+    // Оновлюємо назву файлу та статистику
     const sizeMB = (fileItem.size / (1024 * 1024)).toFixed(2);
-    document.getElementById('modalFileStats').innerText = `${fileItem.pageCount} стор. • ${sizeMB} MB`;
+    document.getElementById('modalFileName').innerText = fileItem.name;
+    document.getElementById('modalFileStats').innerHTML = `📑 ${fileItem.pageCount} стор. • 💾 ${sizeMB} MB`;
+    // Показуємо лоадер
     modalGrid.style.display = 'flex';
     modalGrid.style.flexDirection = 'column';
     modalGrid.style.justifyContent = 'center';
@@ -437,10 +440,12 @@ async function showPagePreview(index) {
         <p id="modalProgressText" style="margin-top: 12px; color: var(--text-secondary);">Оброблено сторінок: 0 / ${fileItem.pageCount}</p>
     `;
     modal.classList.add('active');
+
     if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
         renderPageThumbnails(fileItem.allThumbnails);
         return;
     }
+
     try {
         const arrayBuffer = await fileItem.file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -453,6 +458,7 @@ async function showPagePreview(index) {
             canvas.height = viewport.height;
             await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
             thumbnails.push(canvas.toDataURL());
+
             const percent = (i / pdf.numPages) * 100;
             const progressBar = modalGrid.querySelector('.progress-bar-modal');
             if (progressBar) progressBar.style.width = `${percent}%`;
