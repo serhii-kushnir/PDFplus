@@ -90,7 +90,7 @@ body.dark {
 .preview-merge-files .modal-page-card {
     display: flex;
     flex-direction: column;
-    height: 100%;          /* займає всю висоту комірки сітки */
+    height: 100%;
     justify-content: space-between;
     background: var(--bg-card);
     border-radius: 16px;
@@ -102,7 +102,7 @@ body.dark {
 .preview-merge-files .modal-page-card canvas {
     width: 100%;
     height: auto;
-    aspect-ratio: 1 / 1.4;  /* фіксоване співвідношення сторін для однакової висоти зображення */
+    aspect-ratio: 1 / 1.4;
     object-fit: contain;
     border-radius: 12px;
     margin-bottom: 8px;
@@ -137,6 +137,7 @@ body.dark {
 }
 .preview-tab:hover {
     background: var(--progress-bg);
+    transform: translateY(-2px);
 }
 .preview-tab.active {
     background: #e74c3c;
@@ -247,18 +248,7 @@ body.dark {
     border-color: #e74c3c;
     box-shadow: 0 0 0 2px rgba(231,76,60,0.2);
 }
-.stats-info {
-    background: var(--bg-modal-header);
-    border-radius: 20px;
-    padding: 8px 20px;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
+/* Об'єднаний блок статистики */
 .stats-info {
     background: var(--bg-modal-header);
     border-radius: 20px;
@@ -291,6 +281,7 @@ body.dark {
         flex-wrap: wrap;
         gap: 8px 16px;
         justify-content: center;
+        white-space: normal;
     }
     .stats-info span {
         white-space: normal;
@@ -388,14 +379,9 @@ body.dark {
     transition: all 0.2s;
     white-space: nowrap;
 }
-.btn-secondary:hover,
-.btn-danger:hover,
-.btn-add-more:hover,
-.btn.btn--process:hover {
-    transform: translateY(-2px);
-}
 .btn-secondary:hover {
     background-color: var(--progress-bg);
+    transform: translateY(-2px);
 }
 .btn-danger {
     background-color: var(--btn-danger-bg);
@@ -411,6 +397,7 @@ body.dark {
 .btn-danger:hover {
     background-color: #fecaca;
     border-color: #f87171;
+    transform: translateY(-2px);
 }
 body.dark .btn-danger:hover {
     background-color: #991b1b;
@@ -429,6 +416,7 @@ body.dark .btn-danger:hover {
 }
 .btn-add-more:hover {
     background-color: var(--progress-bg);
+    transform: translateY(-2px);
 }
 .btn.btn--process {
     background: linear-gradient(95deg, #e74c3c, #c0392b);
@@ -446,6 +434,10 @@ body.dark .btn-danger:hover {
     gap: 8px;
     white-space: nowrap;
 }
+.btn.btn--process:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+}
 .btn.btn--process:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -461,6 +453,9 @@ body.dark .btn-danger:hover {
     align-items: center;
     gap: 8px;
     color: var(--text-primary);
+}
+.theme-toggle:hover {
+    transform: translateY(-2px);
 }
 .progress-container {
     margin-top: 20px;
@@ -525,7 +520,7 @@ body.dark .uploader.drag-over {
 }
 .uploader__btn:hover {
     background: #c0392b;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 .uploader__droptxt {
     font-size: 0.85rem;
@@ -636,6 +631,7 @@ body.dark .file-card.selected {
 .file__btn.preview:hover {
     background: #8b5cf6;
     color: white;
+    transform: translateY(-2px);
 }
 .file__btn.full-preview {
     color: #10b981;
@@ -643,6 +639,7 @@ body.dark .file-card.selected {
 .file__btn.full-preview:hover {
     background: #10b981;
     color: white;
+    transform: translateY(-2px);
 }
 .file__btn.rotate {
     color: #2563eb;
@@ -650,6 +647,7 @@ body.dark .file-card.selected {
 .file__btn.rotate:hover {
     background: #2563eb;
     color: white;
+    transform: translateY(-2px);
 }
 .file__btn.remove {
     color: #ef4444;
@@ -657,6 +655,7 @@ body.dark .file-card.selected {
 .file__btn.remove:hover {
     background: #ef4444;
     color: white;
+    transform: translateY(-2px);
 }
 .file-card-checkbox {
     position: absolute;
@@ -824,6 +823,7 @@ body.dark .file-card.selected {
 }
 .close-modal-btn:hover {
     color: #ef4444;
+    transform: translateY(-2px);
 }
 .pages-grid-modal {
     display: grid;
@@ -1134,6 +1134,10 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
     cursor: pointer;
     transition: 0.2s;
 }
+.close-hotkey-btn:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+}
 .confirm-overlay {
     position: fixed;
     top: 0;
@@ -1176,11 +1180,20 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
     border: none;
     font-size: 14px;
 }
-.confirm-buttons .btn-confirm { background: #e74c3c; color: white; }
+.confirm-buttons .btn-confirm {
+    background: #e74c3c;
+    color: white;
+}
+.confirm-buttons .btn-confirm:hover {
+    transform: translateY(-2px);
+}
 .confirm-buttons .btn-cancel {
     background: var(--btn-secondary-bg);
     color: var(--btn-secondary-color);
     border: 1px solid var(--btn-secondary-border);
+}
+.confirm-buttons .btn-cancel:hover {
+    transform: translateY(-2px);
 }
 
 /* ===== СПІНЕР ЗАВАНТАЖЕННЯ ===== */
@@ -1319,7 +1332,6 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
 }
 
 /* ===== УНІФІКАЦІЯ СТИЛІВ МОДАЛЬНИХ ВІКОН ===== */
-/* Перегляд сторінок – такий самий вигляд, як перед об'єднанням */
 .pages-modal .pages-modal-content {
     background: var(--bg-card) !important;
     border-radius: 28px !important;
@@ -1335,7 +1347,6 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
     padding: 24px !important;
     gap: 20px !important;
 }
-/* Картки сторінок – однакові з картками у вкладці "Всі сторінки" */
 .pages-modal .modal-page-card {
     background: var(--bg-card) !important;
     border-radius: 16px !important;
@@ -1372,20 +1383,21 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
     margin-top: 8px !important;
 }
 
-..page-preview-info {
-     display: flex;
-     align-items: center;
-     gap: 8px;
-     background: var(--stats-bg);
-     padding: 6px 16px;
-     border-radius: 40px;
-     font-size: 0.85rem;
-     color: var(--stats-text);
-     margin-left: auto;
- }
- .page-preview-icon {
-     font-size: 1rem;
- }
+/* ===== ДОДАТКОВІ СТИЛІ ДЛЯ СТАТИСТИКИ В МОДАЛЦІ ===== */
+.page-preview-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--stats-bg);
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    color: var(--stats-text);
+    margin-left: auto;
+}
+.page-preview-icon {
+    font-size: 1rem;
+}
 .page-preview-name {
     font-weight: 600;
     max-width: 300px;
@@ -1395,6 +1407,8 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
 }
 .page-preview-stats {
     font-weight: 500;
+    display: flex;
+    gap: 8px;
 }
 @media (max-width: 640px) {
     .pages-modal-header {
@@ -1405,6 +1419,7 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
         order: 2;
         width: 100%;
         justify-content: center;
+        flex-wrap: wrap;
     }
     .page-preview-name {
         white-space: normal;
