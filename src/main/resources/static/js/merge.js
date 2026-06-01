@@ -46,7 +46,11 @@ const closePreviewMergeBtn = document.getElementById('closePreviewMergeBtn');
 const confirmMergeBtn = document.getElementById('confirmMergeBtn');
 let pendingMergeFiles = null;
 let pendingMergeCallback = null;
-let previewSortable = null;
+let currentPreviewMode = 'files'; // 'files' або 'pages'
+
+// Таби
+const previewFilesTab = document.getElementById('previewFilesTab');
+const previewPagesTab = document.getElementById('previewPagesTab');
 
 if (filterStatsRow) filterStatsRow.style.display = 'none';
 
@@ -269,8 +273,7 @@ function updateStats() {
     document.getElementById('totalFiles').innerText = selectedFiles.length;
     document.getElementById('totalPages').innerText = totalPages;
     document.getElementById('totalSize').innerText = totalSizeMB.toFixed(2);
-    statsDiv.style.display = 'inline-flex'; // або 'flex', залежно від бажаного відображення
-
+    statsDiv.style.display = 'inline-flex';
     const limitExceeded = totalSizeMB > MAX_TOTAL_SIZE_MB;
     if (limitExceeded) {
         statsDiv.classList.add('warning');
@@ -976,15 +979,34 @@ function updateMergeButtons() {
     else mergeAllBtn.title = selectedFiles.length >= 2 ? "" : "Додайте принаймні 2 файли";
 }
 
-// ========== ОБ'ЄДНАННЯ З ПОПЕРЕДНІМ ПЕРЕГЛЯДОМ ==========
-function showPreviewMerge(files, callback) {
-    pendingMergeFiles = files;
-    pendingMergeCallback = callback;
-    if (!previewMergeFiles) return;
+// ========== ФУНКЦІЇ ДЛЯ ПЕРЕГЛЯДУ ПЕРЕД ОБ'ЄДНАННЯМ (З ТАБАМИ) ==========
+// Отримання всіх мініатюр файлу (з кешем)
+async function getAllPageThumbnails(fileItem) {
+    if (fileItem.allThumbnails && fileItem.allThumbnails.length === fileItem.pageCount) {
+        return fileItem.allThumbnails;
+    }
+    const arrayBuffer = await fileItem.file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const thumbnails = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 0.3 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        thumbnails.push(canvas.toDataURL());
+    }
+    fileItem.allThumbnails = thumbnails;
+    return thumbnails;
+}
 
+// Рендер списку файлів
+function renderFilesList() {
+    if (!pendingMergeFiles) return;
     let totalPages = 0, totalSizeMB = 0;
     const filesData = [];
-    for (let file of files) {
+    for (let file of pendingMergeFiles) {
         const selectedFileData = selectedFiles.find(f => f.file === file);
         if (selectedFileData) {
             totalPages += selectedFileData.pageCount;
@@ -995,12 +1017,16 @@ function showPreviewMerge(files, callback) {
     const summaryDiv = document.getElementById('previewMergeSummary');
     if (summaryDiv) {
         summaryDiv.innerHTML = `<div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
-            <div>📄Файлів: ${files.length}</div>
+            <div>📄Файлів: ${pendingMergeFiles.length}</div>
             <div>📑Сторінок: ${totalPages}</div>
             <div>💾Розмір: ${totalSizeMB.toFixed(2)} MB</div>
         </div>`;
     }
     previewMergeFiles.innerHTML = '';
+    previewMergeFiles.style.display = 'flex';
+    previewMergeFiles.style.flexDirection = 'column';
+    previewMergeFiles.style.gap = '12px';
+
     filesData.forEach((selectedFileData, idx) => {
         const div = document.createElement('div');
         div.className = 'preview-file-item';
@@ -1042,16 +1068,94 @@ function showPreviewMerge(files, callback) {
         div.appendChild(openBtn);
         previewMergeFiles.appendChild(div);
     });
+}
 
-    // Видаляємо будь-який старий Sortable і не створюємо новий
-    if (previewSortable) {
-        previewSortable.destroy();
-        previewSortable = null;
+// Рендер всіх сторінок у вигляді сітки
+async function renderAllPages() {
+    if (!pendingMergeFiles) return;
+    let totalPages = 0, totalSizeMB = 0;
+    for (let file of pendingMergeFiles) {
+        const selectedFileData = selectedFiles.find(f => f.file === file);
+        if (selectedFileData) {
+            totalPages += selectedFileData.pageCount;
+            totalSizeMB += selectedFileData.size / (1024 * 1024);
+        }
     }
+    const summaryDiv = document.getElementById('previewMergeSummary');
+    if (summaryDiv) {
+        summaryDiv.innerHTML = `<div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div>📄Файлів: ${pendingMergeFiles.length}</div>
+            <div>📑Сторінок: ${totalPages}</div>
+            <div>💾Розмір: ${totalSizeMB.toFixed(2)} MB</div>
+        </div>`;
+    }
+    previewMergeFiles.innerHTML = '<div style="text-align:center; padding:40px;">⏳ Завантаження сторінок...</div>';
+    previewMergeFiles.style.display = 'grid';
+    previewMergeFiles.style.gridTemplateColumns = 'repeat(auto-fill, minmax(140px, 1fr))';
+    previewMergeFiles.style.gap = '20px';
 
+    let allPages = [];
+    for (let file of pendingMergeFiles) {
+        const selectedFileData = selectedFiles.find(f => f.file === file);
+        if (selectedFileData) {
+            const thumbnails = await getAllPageThumbnails(selectedFileData);
+            for (let i = 0; i < thumbnails.length; i++) {
+                allPages.push({
+                    file: selectedFileData,
+                    pageIndex: i,
+                    thumbnailUrl: thumbnails[i],
+                    pageNumber: i + 1
+                });
+            }
+        }
+    }
+    previewMergeFiles.innerHTML = '';
+    allPages.forEach(page => {
+        const card = document.createElement('div');
+        card.className = 'modal-page-card';
+        card.style.cursor = 'pointer';
+        const canvas = document.createElement('canvas');
+        const img = new Image();
+        img.src = page.thumbnailUrl;
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+        };
+        canvas.style.width = '100%';
+        canvas.style.height = 'auto';
+        const span = document.createElement('span');
+        span.innerText = `${page.file.name} – стор. ${page.pageNumber}`;
+        card.appendChild(canvas);
+        card.appendChild(span);
+        card.addEventListener('click', () => {
+            const originalIndex = selectedFiles.findIndex(f => f.file === page.file.file);
+            if (originalIndex !== -1) showPagePreview(originalIndex);
+        });
+        previewMergeFiles.appendChild(card);
+    });
+}
+
+function showPreviewMerge(files, callback) {
+    pendingMergeFiles = files;
+    pendingMergeCallback = callback;
+    if (!previewMergeFiles) return;
+    currentPreviewMode = 'files';
+    renderFilesList();
+    if (previewFilesTab) previewFilesTab.classList.add('active');
+    if (previewPagesTab) previewPagesTab.classList.remove('active');
     if (previewMergeModal) previewMergeModal.classList.add('active');
 }
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
 
 async function mergeSelected() {
     if (selectedIndices.size < 2) { showMessage(`❌ Потрібно вибрати принаймні 2 PDF-файли. Вибрано: ${selectedIndices.size}`, 'error'); return; }
@@ -1171,6 +1275,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ========== ПІДТВЕРДЖЕННЯ ОБ'ЄДНАННЯ ==========
 if (confirmMergeBtn) { confirmMergeBtn.addEventListener('click', () => { if (pendingMergeCallback) { pendingMergeCallback(); closePreviewMergeModal(); } }); }
+
+// ========== ТАБИ ДЛЯ ПЕРЕГЛЯДУ ==========
+if (previewFilesTab) {
+    previewFilesTab.addEventListener('click', () => {
+        if (currentPreviewMode === 'files') return;
+        currentPreviewMode = 'files';
+        renderFilesList();
+        previewFilesTab.classList.add('active');
+        previewPagesTab.classList.remove('active');
+    });
+}
+if (previewPagesTab) {
+    previewPagesTab.addEventListener('click', async () => {
+        if (currentPreviewMode === 'pages') return;
+        currentPreviewMode = 'pages';
+        previewFilesTab.classList.remove('active');
+        previewPagesTab.classList.add('active');
+        await renderAllPages();
+    });
+}
 
 // ========== ВІДНОВЛЕННЯ СЕСІЇ ==========
 (async function init() {
