@@ -532,7 +532,8 @@ body.dark .uploader.drag-over {
     flex-wrap: wrap;
     column-gap: 5%;
     row-gap: 16px;
-    max-height: 600px;
+    /*max-height: 600px;*/
+    max-height: 928px;
     overflow-y: auto;
     padding: 16px;
     padding-top: 46px;
@@ -771,8 +772,9 @@ body.dark .file-card.selected {
     background: var(--bg-card);
     border-radius: 28px;
     max-width: 90vw;
-    max-height: 85vh;
-    width: 900px;
+    max-height: 95vh;
+    /*width: 900px;*/
+    width: 90%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -827,7 +829,7 @@ body.dark .file-card.selected {
 }
 .pages-grid-modal {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
     gap: 20px;
     padding: 24px;
     overflow-y: auto;
@@ -918,7 +920,7 @@ body.dark .loader:before {
     flex-direction: column;
     gap: 12px;
     padding: 16px;
-    max-height: 50vh;
+    /*max-height: 50vh;*/
     overflow-y: auto;
     background: var(--bg-modal-grid);
 }
@@ -1350,7 +1352,7 @@ body.dark .toast-notification.toast-info { background: #1e3a8a; color: #bfdbfe; 
 .pages-modal .modal-page-card {
     background: var(--bg-card) !important;
     border-radius: 16px !important;
-    padding: 10px !important;
+    padding: 5px !important;
     text-align: center !important;
     border: 1px solid var(--border-color) !important;
     transition: all 0.2s !important;
