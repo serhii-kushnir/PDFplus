@@ -172,8 +172,8 @@ body.dark {
 .pages-modal-content {
     background: var(--bg-card) !important;
     border-radius: 28px !important;
-    width: 900px !important;
-    max-width: 90vw !important;
+    /*width: 900px !important;*/
+    /*max-width: 90vw !important;*/
 }
 .pages-modal-header {
     background: var(--bg-modal-header) !important;
